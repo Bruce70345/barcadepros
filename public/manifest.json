@@ -1,0 +1,55 @@
+{
+  "name": "Barcade Pro",
+  "short_name": "Barcade Pro",
+  "dir": "ltr",
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/icons/PWALogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/PWALogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/PWALogo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#2F2F2F",
+  "background_color": "#2F2F2F",
+  "start_url": "/",
+  "scope": "/",
+  "categories": [""],
+  "shortcuts": [
+    {
+      "name": "Accounts",
+      "url": "/Accounts"
+    },
+    {
+      "name": "Home",
+      "url": "/Home"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/PWALogo.png",
+      "sizes": "20x20",
+      "type": "20kb",
+      "description": "The type of your image, such as image/png"
+    }
+  ],
+  "description": "Barcade Pro events scheduler",
+  "prefer_related_applications": false,
+  "related_applications": []
+}
+
