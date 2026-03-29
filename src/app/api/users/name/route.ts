@@ -1,6 +1,7 @@
 import { updateUserName } from "@/server/appStore";
 import { requireRateLimit } from "@/server/rateLimit";
 import { requireTurnstile } from "@/server/turnstile";
+import { requireLength } from "@/server/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,6 +28,8 @@ export async function PATCH(request: Request) {
   if (!name) {
     return Response.json({ message: "name is required" }, { status: 400 });
   }
+  const nameError = requireLength(name, 50, "name");
+  if (nameError) return nameError;
 
   const updated = await updateUserName({ user_id: body.user_id, name });
   if (!updated) {

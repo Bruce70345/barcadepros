@@ -168,7 +168,6 @@
 ### 推播 API 限制
 - `/api/notifications/send-digest` 只允許 Cron 呼叫（使用 secret header）。
 - `/api/notifications/send-realtime` 只允許後端內部呼叫或使用 secret header。
-- 同一服務 5 分鐘內最多發送一次推播。
 
 ## 使用者規則
 - 使用者可修改自己的名稱（更新 `users.name`）。

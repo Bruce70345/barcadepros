@@ -5,6 +5,7 @@ import {
   listEventsInRange,
 } from "@/server/appStore";
 import { getAdminMessaging } from "@/server/firebaseAdmin";
+import { requireIsoDate } from "@/server/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
   const now = body?.now ? new Date(body.now) : new Date();
   if (Number.isNaN(now.getTime())) {
     return Response.json({ message: "invalid now" }, { status: 400 });
+  }
+  if (body?.now) {
+    const nowError = requireIsoDate(body.now, "now");
+    if (nowError) return nowError;
   }
 
   const to = new Date(now.getTime() + 72 * 60 * 60 * 1000);

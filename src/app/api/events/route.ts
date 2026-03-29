@@ -2,6 +2,7 @@ import { createEvent, listEventsInRange } from "@/server/appStore";
 import { requireRateLimit } from "@/server/rateLimit";
 import { requireTurnstile } from "@/server/turnstile";
 import { sendRealtimeForEvent } from "@/server/notificationService";
+import { requireIsoDate, requireLength } from "@/server/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,8 +38,16 @@ export async function POST(request: Request) {
   if (!body?.title) {
     return Response.json({ message: "title is required" }, { status: 400 });
   }
+  const titleError = requireLength(body.title, 100, "title");
+  if (titleError) return titleError;
   if (!body?.start_at) {
     return Response.json({ message: "start_at is required" }, { status: 400 });
+  }
+  const startAtError = requireIsoDate(body.start_at, "start_at");
+  if (startAtError) return startAtError;
+  if (body?.description) {
+    const descError = requireLength(body.description, 1000, "description");
+    if (descError) return descError;
   }
 
   const record = await createEvent({

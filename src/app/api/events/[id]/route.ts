@@ -1,6 +1,7 @@
 import { deleteEvent, getEventById, getUserById, updateEvent } from "@/server/appStore";
 import { requireRateLimit } from "@/server/rateLimit";
 import { requireTurnstile } from "@/server/turnstile";
+import { requireIsoDate, requireLength } from "@/server/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -51,6 +52,19 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
 
   const auth = await checkOwnerOrAdmin(id, body?.user_id);
   if (auth instanceof Response) return auth;
+
+  if (body?.title) {
+    const titleError = requireLength(body.title, 100, "title");
+    if (titleError) return titleError;
+  }
+  if (body?.description) {
+    const descError = requireLength(body.description, 1000, "description");
+    if (descError) return descError;
+  }
+  if (body?.start_at) {
+    const startAtError = requireIsoDate(body.start_at, "start_at");
+    if (startAtError) return startAtError;
+  }
 
   const updated = await updateEvent(id, {
     title: body?.title,
