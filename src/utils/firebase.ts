@@ -709,6 +709,39 @@ export async function getFcmToken() {
     });
 
     if (fcmToken) {
+      // Sync token to server device table if user is known.
+      try {
+        const userId = localStorage.getItem("userId");
+        const userAgent = parseUserAgent(navigator.userAgent);
+        if (userId) {
+          const res = await fetch("/api/devices/upsert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: userId,
+              fcm_token: fcmToken,
+              platform: userAgent.platform,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            console.error(
+              "[Firebase Client] Device token sync failed:",
+              data?.message || res.statusText
+            );
+          } else {
+            console.log(
+              "[Firebase Client] Device token synced to /api/devices/upsert",
+              data
+            );
+          }
+        } else {
+          console.log("[Firebase Client] No userId, skip device token sync");
+        }
+      } catch (syncError) {
+        console.error("[Firebase Client] Failed to sync device token:", syncError);
+      }
+
       // Get old token and decrypt for comparison
       const oldToken = await getFromIndexedDB("fcmToken");
       const userAgent = parseUserAgent(navigator.userAgent);

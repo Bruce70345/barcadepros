@@ -371,7 +371,7 @@ export default function MainPage() {
         <div className="rounded-full border border-[var(--border)] bg-[color-mix(in oklab, var(--surface) 88%, transparent)] px-3 py-2 shadow-lg shadow-[color-mix(in oklab, var(--background) 60%, transparent)] backdrop-blur">
           <div className="flex items-center justify-between">
             <TurnstileWidget
-              className="hidden"
+              className="pt-1"
               onVerify={handleVerify}
               onError={handleError}
               onExpire={handleExpire}

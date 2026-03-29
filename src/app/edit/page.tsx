@@ -227,7 +227,7 @@ export default function EditPage() {
           </div>
 
           <TurnstileWidget
-            className="hidden"
+            className="pt-1"
             onVerify={handleVerify}
             onError={handleError}
             onExpire={handleExpire}
