@@ -3,6 +3,23 @@
 ## 目標
 提供使用者建立活動、決定是否即時通知，並在每日固定時間推送未來 72 小時內的活動摘要。
 
+## Color Palette（Dark, warm + playful neon, less AI）
+品牌方向：深色背景、生活感溫暖、活潑有趣；保留酒吧霓虹感，但降低飽和度與紫藍 AI 感。
+
+- Background: `#0E1117`
+- Surface: `#151A23`
+- Surface-2: `#1D2430`
+- Border: `#2C3648`
+- Text Primary: `#E9EEF7`
+- Text Secondary: `#B3BDD1`
+- Text Muted: `#8B97AF`
+- Primary (neon-rose): `#E65A8A`
+- Primary Strong: `#D83E73`
+- Accent (amber): `#F0A64A`
+- Highlight: `#FFD08A`
+- Success: `#2CCCA0`
+- Danger: `#F06C6C`
+
 ## 核心規則
 - 活動有分類（如：吃飯、戶外活動、文化體驗、酒吧、週末旅行、大旅行），僅供展示與篩選，不影響推播邏輯。
 - 建立活動時可選擇是否「即時通知」。

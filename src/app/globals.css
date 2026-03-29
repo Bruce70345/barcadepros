@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #ff2d95;
-  --primary-glow: #ff4db8;
-  --secondary-glow: #d61bff;
-  --background: #0d0b14;
-  --surface: #1a0f2e;
-  --accent: #ff9a2a;
-  --highlight: #ffc857;
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --border: #2a2a2a;
+  --background: #0e1117;
+  --surface: #151a23;
+  --surface-2: #1d2430;
+  --border: #2c3648;
+  --text-primary: #e9eef7;
+  --text-secondary: #b3bdd1;
+  --text-muted: #8b97af;
+  --primary: #e65a8a;
+  --primary-strong: #d83e73;
+  --accent: #f0a64a;
+  --highlight: #ffd08a;
+  --success: #2ccca0;
+  --danger: #f06c6c;
   --foreground: var(--text-primary);
 }
 
@@ -18,36 +21,25 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-primary: var(--primary);
-  --color-primary-glow: var(--primary-glow);
-  --color-secondary-glow: var(--secondary-glow);
+  --color-primary-strong: var(--primary-strong);
   --color-accent: var(--accent);
   --color-highlight: var(--highlight);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
   --color-border: var(--border);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #ff2d95;
-    --primary-glow: #ff4db8;
-    --secondary-glow: #d61bff;
-    --background: #0d0b14;
-    --surface: #1a0f2e;
-    --accent: #ff9a2a;
-    --highlight: #ffc857;
-    --text-primary: #ffffff;
-    --text-secondary: #b3b3b3;
-    --border: #2a2a2a;
-    --foreground: var(--text-primary);
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: dark;
 }
