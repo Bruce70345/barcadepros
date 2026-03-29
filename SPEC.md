@@ -138,3 +138,31 @@
   - 讀取使用 `useQuery`
   - 寫入使用 `useMutation`
 - 不直接在 UI 元件內寫 API 呼叫；以 hook 封裝資料存取。
+
+## 安全與防濫用（小專案版本）
+因為接近訪客模式，採用最小防線即可。
+
+### 表單防機器人
+- 使用 Turnstile 驗證（前端表單送出時帶 token，後端驗證）。
+- 規則：所有「會寫入/觸發」的 API 都需要 Turnstile，**例外**：
+  - `GET` 類型 API
+  - `POST /api/devices/upsert`（更新 FCM token）
+
+適用範圍（需 Turnstile）：
+- 建立使用者（`POST /api/users/upsert`）
+- 事件 CRUD（`POST/PATCH/DELETE /api/events`）
+- 即時通知（`POST /api/notifications/send-realtime`）
+
+### 簡單 Rate Limit
+- 以 IP 為單位限制寫入頻率（例：每分鐘 10 次）。
+
+### 輸入長度限制
+- `email` < 200
+- `name` < 50
+- `title` < 100
+- `description` < 1000
+
+### 推播 API 限制
+- `/api/notifications/send-digest` 只允許 Cron 呼叫（使用 secret header）。
+- `/api/notifications/send-realtime` 只允許後端內部呼叫或使用 secret header。
+- 同一服務 5 分鐘內最多發送一次推播。
