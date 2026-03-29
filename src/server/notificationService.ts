@@ -33,16 +33,17 @@ export async function sendRealtimeForEvent(eventId: string) {
   }
 
   const now = new Date();
-  if (isQuietHoursTaipei(now)) {
-    await createNotification({
-      type: "realtime",
-      title: "新活動",
-      body: event.title,
-      send_at: now.toISOString(),
-      status: "skipped",
-    });
-    return { ok: true, sent: 0, skipped: true, reason: "quiet_hours" } as const;
-  }
+  // NOTE: Quiet hours disabled temporarily for testing.
+  // if (isQuietHoursTaipei(now)) {
+  //   await createNotification({
+  //     type: "realtime",
+  //     title: "新活動",
+  //     body: event.title,
+  //     send_at: now.toISOString(),
+  //     status: "skipped",
+  //   });
+  //   return { ok: true, sent: 0, skipped: true, reason: "quiet_hours" } as const;
+  // }
 
   const users = await listActiveUsersByPreference({ realtime: true });
   const tokens = await listActiveTokensByUserIds(users.map((u) => u.id));
