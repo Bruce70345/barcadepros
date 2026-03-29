@@ -23,8 +23,6 @@ export default function EditPage() {
   const [receiveDigestDraft, setReceiveDigestDraft] = useState<boolean | null>(
     null,
   );
-  const [prefError, setPrefError] = useState("");
-  const [nameError, setNameError] = useState("");
   const profileQuery = useUserProfile(userId);
   const updatePreferences = useUpdateUserPreferences();
   const updateName = useUpdateUserName();
@@ -57,49 +55,52 @@ export default function EditPage() {
     receiveDigestDraft ?? Boolean(profileQuery.data?.receive_digest);
 
   const handleSavePreferences = async () => {
-    setPrefError("");
     if (!userId) return;
     if (!verified || !token) {
-      setPrefError("Verification required before saving.");
+      SystemToast.showToast("Verification required before saving.", "warning");
       return;
     }
     try {
+      SystemLoading.loadingStart({ loadingText: "Saving preferences..." });
       await updatePreferences.mutateAsync({
         userId,
         receiveRealtime,
         receiveDigest,
         turnstileToken: token,
       });
-      SystemToast.showToast(
-        "Notification preferences updated.",
-        "success",
-      );
+      SystemToast.showToast("Notification preferences updated.", "success");
     } catch (err) {
-      setPrefError(
+      SystemToast.showToast(
         err instanceof Error
           ? err.message
-          : "Failed to update preferences."
+          : "Failed to update preferences.",
+        "error",
       );
+    } finally {
+      SystemLoading.loadingEnd();
     }
   };
 
   const handleSaveName = async () => {
-    setNameError("");
     if (!userId) return;
     const trimmed = name.trim();
     if (!trimmed) {
-      setNameError("Please enter a display name.");
+      SystemToast.showToast("Please enter a display name.", "warning");
       return;
     }
     if (trimmed.length > 50) {
-      setNameError("Display name must be under 50 characters.");
+      SystemToast.showToast(
+        "Display name must be under 50 characters.",
+        "warning",
+      );
       return;
     }
     if (!verified || !token) {
-      setNameError("Verification required before saving.");
+      SystemToast.showToast("Verification required before saving.", "warning");
       return;
     }
     try {
+      SystemLoading.loadingStart({ loadingText: "Saving name..." });
       await updateName.mutateAsync({
         userId,
         name: trimmed,
@@ -108,7 +109,12 @@ export default function EditPage() {
       window.localStorage.setItem("userName", trimmed);
       SystemToast.showToast("Display name updated.", "success");
     } catch (err) {
-      setNameError(err instanceof Error ? err.message : "Failed to update name.");
+      SystemToast.showToast(
+        err instanceof Error ? err.message : "Failed to update name.",
+        "error",
+      );
+    } finally {
+      SystemLoading.loadingEnd();
     }
   };
 
@@ -183,18 +189,13 @@ export default function EditPage() {
               daily.
             </div>
 
-            {prefError && (
-              <p className="mt-3 text-sm text-[var(--danger)]" role="alert">
-                {prefError}
-              </p>
-            )}
             <button
               type="button"
               onClick={handleSavePreferences}
               className="mt-4 w-full rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--background)] disabled:opacity-60"
               disabled={updatePreferences.isPending}
             >
-              {updatePreferences.isPending ? "Saving..." : "Save preferences"}
+              Save preferences
             </button>
           </div>
 
@@ -215,18 +216,13 @@ export default function EditPage() {
               />
             </label>
 
-            {nameError && (
-              <p className="mt-3 text-sm text-[var(--danger)]" role="alert">
-                {nameError}
-              </p>
-            )}
             <button
               type="button"
               onClick={handleSaveName}
               className="mt-4 w-full rounded-lg border border-[color-mix(in oklab, var(--primary) 40%, var(--border))] bg-[color-mix(in oklab, var(--primary) 18%, var(--surface-2))] px-4 py-2 text-sm font-medium text-[var(--primary)] transition-colors hover:bg-[color-mix(in oklab, var(--primary) 26%, var(--surface-2))] disabled:opacity-60"
               disabled={updateName.isPending}
             >
-              {updateName.isPending ? "Saving..." : "Save name"}
+              Save name
             </button>
           </div>
 

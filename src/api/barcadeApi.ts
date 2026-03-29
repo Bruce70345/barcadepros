@@ -11,12 +11,18 @@ type UserProfile = {
   receive_realtime: boolean;
   receive_digest: boolean;
   is_active: boolean;
+  is_admin?: boolean;
 };
 
 export const barcadeApi = {
-  joinUser: async (input: { name: string; turnstileToken: string }) => {
+  joinUser: async (input: {
+    name: string;
+    email?: string;
+    turnstileToken: string;
+  }) => {
     return postJson<JoinUserResponse>("/api/users/upsert", {
       name: input.name,
+      email: input.email,
       turnstile_token: input.turnstileToken,
     });
   },

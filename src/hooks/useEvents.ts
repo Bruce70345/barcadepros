@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export type EventRecord = {
   id: string;
+  user_id?: string;
   title: string;
   category?: string;
   description?: string;

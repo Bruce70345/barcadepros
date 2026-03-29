@@ -6,6 +6,7 @@ import { queryKeys } from "@/api/queryKeys";
 
 type JoinInput = {
   name: string;
+  email?: string;
   turnstileToken: string;
 };
 

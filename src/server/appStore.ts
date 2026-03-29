@@ -133,7 +133,10 @@ export async function upsertUser(input: {
   const nameTarget = input.name.trim();
   const emailTarget = input.email?.trim().toLowerCase() || "";
   const existing = emailTarget
-    ? mapped.find((u) => u.email?.toLowerCase() === emailTarget)
+    ? mapped.find(
+        (u) =>
+          u.email?.toLowerCase() === emailTarget && u.name === nameTarget
+      )
     : mapped.find((u) => u.name === nameTarget);
   const now = nowIso();
 

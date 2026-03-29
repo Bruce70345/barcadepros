@@ -98,7 +98,7 @@ const NotificationGuideModal = ({
         <div
           role="tablist"
           aria-label="Browser tabs"
-          className="flex gap-2 overflow-x-auto pb-2"
+          className="custom-scrollbar flex gap-2 overflow-x-auto pb-2"
         >
           {tabs.map((tab, index) => {
             const active = index === tabValue;

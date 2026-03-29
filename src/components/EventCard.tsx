@@ -64,34 +64,39 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
     return Number.isNaN(date.getTime()) ? undefined : date;
   });
 
-  const displayDate = useMemo(() => {
-    if (!selectedDate) return "dd/mm/yyyy";
-    const dd = pad(selectedDate.getDate());
-    const mm = pad(selectedDate.getMonth() + 1);
-    const yyyy = selectedDate.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }, [selectedDate]);
-
   const startDateValue = useMemo(() => {
     if (!selectedDate) return "";
     return `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(
       selectedDate.getDate(),
     )}`;
   }, [selectedDate]);
-  const parseInitialTime = () => {
+  const initialTime = useMemo(() => {
     const time = toLocalTimeValue(initial?.start_at);
     if (!time) return { hour: "", minute: "", meridiem: "" };
     const [h, m] = time.split(":");
     const hour24 = Number(h);
-    const minute = m === "30" ? "30" : "00";
+    const minute = ["00", "10", "20", "30", "40", "50"].includes(m)
+      ? m
+      : "00";
     const meridiem = hour24 >= 12 ? "pm" : "am";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
     return { hour: String(hour12).padStart(2, "0"), minute, meridiem };
-  };
-  const initialTime = useMemo(parseInitialTime, [initial?.start_at]);
+  }, [initial?.start_at]);
   const [timeHour, setTimeHour] = useState(initialTime.hour);
   const [timeMinute, setTimeMinute] = useState(initialTime.minute);
   const [timeMeridiem, setTimeMeridiem] = useState(initialTime.meridiem);
+
+  const displayDate = useMemo(() => {
+    if (!selectedDate) return "dd/mm/yyyy";
+    const dd = pad(selectedDate.getDate());
+    const mm = pad(selectedDate.getMonth() + 1);
+    const yyyy = selectedDate.getFullYear();
+    const timeLabel =
+      timeHour && timeMinute && timeMeridiem
+        ? `${timeHour}:${timeMinute} ${timeMeridiem}`
+        : "--:--";
+    return `${dd}/${mm}/${yyyy}, ${timeLabel}`;
+  }, [selectedDate, timeHour, timeMinute, timeMeridiem]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -136,11 +141,6 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
               : ""}
           </p>
         </div>
-        {initial?.id && (
-          <span className="rounded-full border border-[var(--border)] px-2 py-1 text-[11px] text-[var(--text-muted)]">
-            {initial.id}
-          </span>
-        )}
       </header>
 
       <div className="mt-4 space-y-3">
@@ -258,6 +258,9 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
               </PopoverContent>
             </Popover>
             <input type="hidden" name="start_date" value={startDateValue} />
+            <input type="hidden" name="time_hour" value={timeHour} />
+            <input type="hidden" name="time_minute" value={timeMinute} />
+            <input type="hidden" name="time_meridiem" value={timeMeridiem} />
           </div>
         </label>
 
