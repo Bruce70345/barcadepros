@@ -10,14 +10,15 @@ import {
 import { FirebaseApp } from "firebase/app";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+export type NotificationPermissionState = NotificationPermission | "-";
+
 export function useFirebase() {
   const [app, setApp] = useState<FirebaseApp | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [messaging, setMessaging] = useState<any>(null);
   const [fcmToken, setFcmToken] = useState<string>("");
-  const [notificationPermission, setNotificationPermission] = useState<
-    NotificationPermission | "default" | "-"
-  >("-");
+  const [notificationPermission, setNotificationPermission] =
+    useState<NotificationPermissionState>("-");
   const [isClient, setIsClient] = useState<boolean>(false);
   const isInitialized = useRef(false);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import NotificationSettings from "@/components/NotificationSettings";
 import {
   ensureMessagingServiceWorker,
   getFcmToken,
@@ -129,16 +130,6 @@ export default function Home() {
     };
     window.addEventListener("fcm-message", handler);
     return () => window.removeEventListener("fcm-message", handler);
-  }, []);
-
-  useEffect(() => {
-    // Request notification permission on entry
-    requestNotificationPermission().then((granted) => {
-      console.log(
-        "[Home] initial requestNotificationPermission:",
-        granted ? "granted" : "denied"
-      );
-    });
   }, []);
 
   const fetchToken = async () => {
@@ -274,10 +265,11 @@ export default function Home() {
     setListening(true);
     setResult(null);
     try {
-      console.log("[Home] requestNotificationPermission() for listening");
-      const granted = await requestNotificationPermission();
-      if (!granted) {
-        setResult({ ok: false, message: "通知權限未授予" });
+      if (!("Notification" in window) || Notification.permission !== "granted") {
+        setResult({
+          ok: false,
+          message: "通知權限未授予，請點擊上方鈴鐺開啟",
+        });
         setListening(false);
         return;
       }
@@ -306,6 +298,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 px-6">
+      <div className="mb-6 w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm">
+        <NotificationSettings />
+      </div>
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h1 className="text-xl font-semibold text-zinc-900">
           FCM Token 取得
