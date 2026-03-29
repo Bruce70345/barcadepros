@@ -34,8 +34,6 @@ declare global {
   }
 }
 
-const isDev = process.env.NODE_ENV !== "production";
-
 export default function TurnstileWidget({
   siteKey,
   onVerify,
@@ -48,35 +46,51 @@ export default function TurnstileWidget({
 }: TurnstileWidgetProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const isDev = process.env.NODE_ENV !== "production";
 
   useEffect(() => {
-    if (isDev) {
-      onVerify("dev-turnstile-token");
-      return;
-    }
-
-    const key = siteKey || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    const testKey = "1x00000000000000000000AA";
+    const key =
+      siteKey ||
+      (isDev ? testKey : process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
     if (!key) {
       console.error("Missing NEXT_PUBLIC_TURNSTILE_SITE_KEY");
       return;
     }
 
-    if (!ref.current || !window.turnstile) {
-      return;
-    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let warned = false;
 
-    const id = window.turnstile.render(ref.current, {
-      sitekey: key,
-      size,
-      theme,
-      appearance,
-      callback: onVerify,
-      "error-callback": onError,
-      "expired-callback": onExpire,
-    });
-    widgetIdRef.current = id;
+    const tryRender = () => {
+      if (cancelled || widgetIdRef.current) return;
+      if (!ref.current) return;
+      if (!window.turnstile) {
+        if (!warned) {
+          console.warn("Turnstile script not ready yet.");
+          warned = true;
+        }
+        timer = setTimeout(tryRender, 300);
+        return;
+      }
+
+      const id = window.turnstile.render(ref.current, {
+        sitekey: key,
+        size,
+        theme,
+        appearance,
+        callback: onVerify,
+        "error-callback": onError,
+        "expired-callback": onExpire,
+      });
+      widgetIdRef.current = id;
+    };
+
+    tryRender();
 
     return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
       if (widgetIdRef.current && window.turnstile) {
         window.turnstile.remove(widgetIdRef.current);
         widgetIdRef.current = null;

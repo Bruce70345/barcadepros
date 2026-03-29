@@ -2,11 +2,9 @@
 
 import { useCallback, useState } from "react";
 
-const isDev = process.env.NODE_ENV !== "production";
-
 export function useTurnstile() {
-  const [token, setToken] = useState<string>(isDev ? "dev-turnstile-token" : "");
-  const [verified, setVerified] = useState<boolean>(isDev);
+  const [token, setToken] = useState<string>("");
+  const [verified, setVerified] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleVerify = useCallback((value: string) => {

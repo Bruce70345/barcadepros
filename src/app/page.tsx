@@ -312,13 +312,13 @@ export default function MainPage() {
               onExpire={handleExpire}
             />
             <audio ref={audioRef} src="/ringTone.mp3" preload="none" />
-            <button
+            {/* <button
               type="button"
               aria-label="Open calendar"
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
             >
               <Calendar size={20} />
-            </button>
+            </button> */}
 
             <button
               type="button"
