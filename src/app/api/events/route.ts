@@ -1,5 +1,7 @@
 import { createEvent, listEventsInRange } from "@/server/appStore";
+import { requireRateLimit } from "@/server/rateLimit";
 import { requireTurnstile } from "@/server/turnstile";
+import { sendRealtimeForEvent } from "@/server/notificationService";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,6 +28,9 @@ export async function POST(request: Request) {
   const turnstileError = await requireTurnstile(body?.turnstile_token);
   if (turnstileError) return turnstileError;
 
+  const rateLimitError = requireRateLimit(request);
+  if (rateLimitError) return rateLimitError;
+
   if (!body?.user_id) {
     return Response.json({ message: "user_id is required" }, { status: 400 });
   }
@@ -46,7 +51,15 @@ export async function POST(request: Request) {
     recurrence_rule: body.recurrence_rule,
   });
 
-  return Response.json({ id: record.id }, { status: 201 });
+  let realtimeResult: unknown = null;
+  if (record.send_realtime) {
+    realtimeResult = await sendRealtimeForEvent(record.id);
+  }
+
+  return Response.json(
+    { id: record.id, realtime: realtimeResult },
+    { status: 201 }
+  );
 }
 
 export async function GET(request: Request) {

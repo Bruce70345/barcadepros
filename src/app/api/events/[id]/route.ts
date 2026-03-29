@@ -1,4 +1,5 @@
 import { deleteEvent, getEventById, getUserById, updateEvent } from "@/server/appStore";
+import { requireRateLimit } from "@/server/rateLimit";
 import { requireTurnstile } from "@/server/turnstile";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,9 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   const turnstileError = await requireTurnstile(body?.turnstile_token);
   if (turnstileError) return turnstileError;
 
+  const rateLimitError = requireRateLimit(request);
+  if (rateLimitError) return rateLimitError;
+
   const auth = await checkOwnerOrAdmin(id, body?.user_id);
   if (auth instanceof Response) return auth;
 
@@ -75,6 +79,9 @@ export async function DELETE(request: Request, ctx: { params: Promise<{ id: stri
 
   const turnstileError = await requireTurnstile(body?.turnstile_token);
   if (turnstileError) return turnstileError;
+
+  const rateLimitError = requireRateLimit(request);
+  if (rateLimitError) return rateLimitError;
 
   const auth = await checkOwnerOrAdmin(id, body?.user_id);
   if (auth instanceof Response) return auth;

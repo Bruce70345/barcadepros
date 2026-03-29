@@ -1,4 +1,5 @@
 import { updateUserPreferences } from "@/server/appStore";
+import { requireRateLimit } from "@/server/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,6 +27,9 @@ export async function PATCH(request: Request) {
       { status: 400 }
     );
   }
+
+  const rateLimitError = requireRateLimit(request);
+  if (rateLimitError) return rateLimitError;
 
   const updated = await updateUserPreferences({
     user_id: body.user_id,

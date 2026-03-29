@@ -1,4 +1,5 @@
 import { upsertUser } from "@/server/appStore";
+import { requireRateLimit } from "@/server/rateLimit";
 import { requireTurnstile } from "@/server/turnstile";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,9 @@ export async function POST(request: Request) {
 
   const turnstileError = await requireTurnstile(body?.turnstile_token);
   if (turnstileError) return turnstileError;
+
+  const rateLimitError = requireRateLimit(request);
+  if (rateLimitError) return rateLimitError;
 
   const name = body?.name?.trim();
   if (!name) {
