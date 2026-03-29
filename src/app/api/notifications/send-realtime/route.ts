@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const turnstileError = await requireTurnstile(body?.turnstile_token);
   if (turnstileError) return turnstileError;
 
-  const rateLimitError = requireRateLimit(request, 1);
+  const rateLimitError = requireRateLimit(request);
   if (rateLimitError) return rateLimitError;
 
   if (!body?.event_id) {

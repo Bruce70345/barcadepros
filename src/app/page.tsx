@@ -81,6 +81,7 @@ export default function MainPage() {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
     if (createEvent.isPending || updateEvent.isPending) return;
     if (prevFetching.current === eventsQuery.isFetching) return;
     prevFetching.current = eventsQuery.isFetching;
@@ -94,7 +95,61 @@ export default function MainPage() {
     eventsQuery.isFetching,
     createEvent.isPending,
     updateEvent.isPending,
+    userId,
   ]);
+
+  const handleTestRealtime = async () => {
+    if (!userId) return;
+    if (!verified || !token) {
+      SystemToast.showToast("Verification required before testing.", "warning");
+      return;
+    }
+    SystemLoading.loadingStart({ loadingText: "Sending test notification..." });
+    try {
+      const now = new Date();
+      const createRes = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          title: `Test event ${now.toLocaleTimeString()}`,
+          start_at: now.toISOString(),
+          send_realtime: false,
+          turnstile_token: token,
+        }),
+      });
+      const created = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) {
+        throw new Error(created?.message || "Failed to create test event");
+      }
+      const eventId = created?.id;
+      if (!eventId) {
+        throw new Error("Missing event id from create response");
+      }
+
+      const sendRes = await fetch("/api/notifications/send-realtime", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: eventId,
+          turnstile_token: token,
+        }),
+      });
+      const sendData = await sendRes.json().catch(() => ({}));
+      if (!sendRes.ok) {
+        throw new Error(sendData?.message || "Failed to send realtime");
+      }
+
+      SystemToast.showToast("Test realtime sent.", "success");
+    } catch (error) {
+      SystemToast.showToast(
+        error instanceof Error ? error.message : "Test failed.",
+        "error",
+      );
+    } finally {
+      SystemLoading.loadingEnd();
+    }
+  };
 
   return (
     <main className="flex-1 bg-[var(--background)] text-[var(--foreground)]">
@@ -106,6 +161,16 @@ export default function MainPage() {
               ? eventsQuery.error.message
               : "Failed to load events."}
           </div>
+        )}
+
+        {process.env.NODE_ENV !== "production" && (
+          <button
+            type="button"
+            onClick={handleTestRealtime}
+            className="mb-4 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))]"
+          >
+            Send Test Realtime Notification
+          </button>
         )}
 
         <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">

@@ -1,6 +1,7 @@
 import {
   createNotification,
   getEventById,
+  getUserById,
   listActiveTokensByUserIds,
   listActiveUsersByPreference,
 } from "@/server/appStore";
@@ -31,13 +32,16 @@ export async function sendRealtimeForEvent(eventId: string) {
   if (!event) {
     return { ok: false, message: "event not found" } as const;
   }
+  const sender = event.user_id ? await getUserById(event.user_id) : null;
+  const senderName = sender?.name?.trim() || "Someone";
+  const invitationBody = `${senderName} sent an invitation`;
 
   const now = new Date();
   // NOTE: Quiet hours disabled temporarily for testing.
   // if (isQuietHoursTaipei(now)) {
   //   await createNotification({
   //     type: "realtime",
-  //     title: "新活動",
+  //     title: "New event",
   //     body: event.title,
   //     send_at: now.toISOString(),
   //     status: "skipped",
@@ -51,7 +55,7 @@ export async function sendRealtimeForEvent(eventId: string) {
   if (tokens.length === 0) {
     await createNotification({
       type: "realtime",
-      title: "新活動",
+      title: invitationBody,
       body: event.title,
       send_at: now.toISOString(),
       status: "sent",
@@ -68,8 +72,8 @@ export async function sendRealtimeForEvent(eventId: string) {
       const result = await messaging.sendEachForMulticast({
         tokens: batch,
         notification: {
-          title: "新活動",
-          body: event.title,
+          title: "New event",
+          body: invitationBody,
         },
         data: {
           event_id: event.id,
@@ -82,8 +86,8 @@ export async function sendRealtimeForEvent(eventId: string) {
 
     await createNotification({
       type: "realtime",
-      title: "新活動",
-      body: event.title,
+      title: "New event",
+      body: invitationBody,
       send_at: now.toISOString(),
       status: failureCount > 0 ? "failed" : "sent",
     });
@@ -97,8 +101,8 @@ export async function sendRealtimeForEvent(eventId: string) {
   } catch (error: any) {
     await createNotification({
       type: "realtime",
-      title: "新活動",
-      body: event.title,
+      title: "New event",
+      body: invitationBody,
       send_at: now.toISOString(),
       status: "failed",
     });

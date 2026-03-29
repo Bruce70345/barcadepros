@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, Repeat2, Text, ToggleLeft } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,15 @@ const to24Hour = (value: string) => {
   return `${pad(hour)}:${minute}`;
 };
 
+const getRoundedDefaultDate = () => {
+  const date = new Date();
+  date.setSeconds(0, 0);
+  const minutes = date.getMinutes();
+  const nextTen = Math.floor(minutes / 10) * 10 + 10;
+  date.setMinutes(nextTen);
+  return date;
+};
+
 type EventCardProps = {
   mode: "create" | "edit";
   initial?: {
@@ -58,10 +67,15 @@ type EventCardProps = {
 };
 
 export default function EventCard({ mode, initial, onSave, saving }: EventCardProps) {
+  const defaultDate =
+    mode === "create" && !initial?.start_at ? getRoundedDefaultDate() : undefined;
+
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
-    if (!initial?.start_at) return undefined;
-    const date = new Date(initial.start_at);
-    return Number.isNaN(date.getTime()) ? undefined : date;
+    if (initial?.start_at) {
+      const date = new Date(initial.start_at);
+      return Number.isNaN(date.getTime()) ? undefined : date;
+    }
+    return defaultDate;
   });
 
   const startDateValue = useMemo(() => {
@@ -71,6 +85,13 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
     )}`;
   }, [selectedDate]);
   const initialTime = useMemo(() => {
+    if (!initial?.start_at && defaultDate) {
+      const hour24 = defaultDate.getHours();
+      const minute = pad(defaultDate.getMinutes());
+      const meridiem = hour24 >= 12 ? "pm" : "am";
+      const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+      return { hour: String(hour12).padStart(2, "0"), minute, meridiem };
+    }
     const time = toLocalTimeValue(initial?.start_at);
     if (!time) return { hour: "", minute: "", meridiem: "" };
     const [h, m] = time.split(":");
@@ -81,7 +102,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
     const meridiem = hour24 >= 12 ? "pm" : "am";
     const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
     return { hour: String(hour12).padStart(2, "0"), minute, meridiem };
-  }, [initial?.start_at]);
+  }, [defaultDate, initial?.start_at]);
   const [timeHour, setTimeHour] = useState(initialTime.hour);
   const [timeMinute, setTimeMinute] = useState(initialTime.minute);
   const [timeMeridiem, setTimeMeridiem] = useState(initialTime.meridiem);
@@ -160,7 +181,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
             <CalendarDays size={16} className="text-[var(--text-muted)]" />
             <select
               name="category"
-              defaultValue={initial?.category || ""}
+              defaultValue={initial?.category || (mode === "create" ? "Meal together" : "")}
               className="w-full bg-transparent text-sm text-[var(--text-primary)] outline-none"
             >
               <option value="" disabled>
