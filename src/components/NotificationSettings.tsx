@@ -23,7 +23,7 @@ const NotificationSettings = () => {
 
   const handleButtonClick = () => {
     // 如果權限被拒絕，顯示幫助對話框
-    if (notificationBlocked || notificationPermission === "denied") {
+    if (notificationBlocked ) {
       setShowGuide(true);
       return;
     }
