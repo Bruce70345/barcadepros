@@ -5,6 +5,7 @@ import {
   getSheetValues,
   updateRow,
 } from "@/server/googleSheets";
+import { assertHeaders } from "@/server/schema";
 
 const SHEET_USERS = "users";
 const SHEET_DEVICES = "user_devices";
@@ -51,7 +52,7 @@ type NotificationRecord = {
   title: string;
   body: string;
   send_at: string;
-  status: "pending" | "sent" | "failed";
+  status: "pending" | "sent" | "failed" | "skipped";
   created_at: string;
 };
 
@@ -86,6 +87,7 @@ function buildRow(headers: string[], data: Record<string, string>) {
 
 async function loadUsers() {
   const { headers, rows } = await getSheetValues(SHEET_USERS);
+  assertHeaders("users", headers);
   const mapped = mapRows<UserRecord>(headers, rows).map((u) => ({
     ...u,
     receive_realtime: toBool((u as any).receive_realtime),
@@ -98,6 +100,7 @@ async function loadUsers() {
 
 async function loadDevices() {
   const { headers, rows } = await getSheetValues(SHEET_DEVICES);
+  assertHeaders("user_devices", headers);
   const mapped = mapRows<DeviceRecord>(headers, rows).map((d) => ({
     ...d,
     is_active: toBool((d as any).is_active),
@@ -107,6 +110,7 @@ async function loadDevices() {
 
 async function loadEvents() {
   const { headers, rows } = await getSheetValues(SHEET_EVENTS);
+  assertHeaders("events", headers);
   const mapped = mapRows<EventRecord>(headers, rows).map((e) => ({
     ...e,
     send_realtime: toBool((e as any).send_realtime),
@@ -116,6 +120,7 @@ async function loadEvents() {
 
 async function loadNotifications() {
   const { headers, rows } = await getSheetValues(SHEET_NOTIFICATIONS);
+  assertHeaders("notifications", headers);
   const mapped = mapRows<NotificationRecord>(headers, rows);
   return { headers, rows, mapped };
 }
@@ -489,7 +494,7 @@ export async function createNotification(input: {
   title: string;
   body: string;
   send_at: string;
-  status: "pending" | "sent" | "failed";
+  status: "pending" | "sent" | "failed" | "skipped";
 }): Promise<NotificationRecord> {
   const { headers } = await loadNotifications();
   const record: NotificationRecord = {

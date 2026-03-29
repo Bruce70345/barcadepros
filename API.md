@@ -2,6 +2,8 @@
 
 以下為目前 Spec 對應的最小可用 API 清單。
 
+> 註：`/api/v1/*` 為測試用途（保留舊版測試路由）。
+
 ## 1) 使用者
 
 ### POST /api/users/upsert
@@ -115,6 +117,7 @@ Response
 
 Query
 - `user_id`：使用者 ID
+- `active`：預設只回傳啟用裝置；設為 `false` 則回傳全部
 
 Response
 ```json
@@ -247,7 +250,7 @@ Response
 ## 4) 通知
 
 ### POST /api/notifications/send-realtime
-發送即時通知（建立事件後由後端呼叫）。
+發送即時通知（建立事件後由後端呼叫，內部用途）。
 
 Request
 ```json

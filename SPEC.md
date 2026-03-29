@@ -63,7 +63,7 @@
 - title
 - body
 - send_at
-- status (pending/sent/failed)
+- status (pending/sent/failed/skipped)
 - created_at
 
 ## 推播流程（後端 / 排程）
@@ -167,7 +167,7 @@
 
 ### 推播 API 限制
 - `/api/notifications/send-digest` 只允許 Cron 呼叫（使用 secret header）。
-- `/api/notifications/send-realtime` 只允許後端內部呼叫或使用 secret header。
+- `/api/notifications/send-realtime` 僅供後端內部使用（事件建立後自動觸發）。
 
 ## 使用者規則
 - 使用者可修改自己的名稱（更新 `users.name`）。

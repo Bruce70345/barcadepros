@@ -39,7 +39,7 @@ export async function sendRealtimeForEvent(eventId: string) {
       title: "新活動",
       body: event.title,
       send_at: now.toISOString(),
-      status: "sent",
+      status: "skipped",
     });
     return { ok: true, sent: 0, skipped: true, reason: "quiet_hours" } as const;
   }

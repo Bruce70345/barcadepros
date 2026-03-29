@@ -4,6 +4,7 @@ import {
   listActiveUsersByPreference,
   listEventsInRange,
 } from "@/server/appStore";
+import { requireCronSecret } from "@/server/cronAuth";
 import { getAdminMessaging } from "@/server/firebaseAdmin";
 import { requireIsoDate } from "@/server/validation";
 
@@ -19,6 +20,9 @@ function chunk<T>(items: T[], size: number) {
 }
 
 export async function POST(request: Request) {
+  const cronError = requireCronSecret(request);
+  if (cronError) return cronError;
+
   let body: { now?: string } | null = null;
   try {
     body = await request.json();
