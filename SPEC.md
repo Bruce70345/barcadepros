@@ -140,6 +140,45 @@
 - 依分類訂閱通知
 - 通知送達追蹤（notification_recipients）
 
+## Phase 2（v2）- 活動回覆與投票
+### 活動回覆（RSVP）
+- 使用者可對活動回覆是否參加：
+  - `going` / `maybe` / `not_going` / `no_response`
+- 一個使用者對同一活動只保留一筆最新回覆（可更新）。
+- 活動建立者也可以回覆自己的活動。
+
+### 投票功能
+- 每個活動可建立 0~N 個投票（例如：聚會時間、地點、主題）。
+- 每個投票包含多個選項，使用者可選擇 1 個選項。
+- 使用者可更新自己的投票選擇（以最後一次為準）。
+
+### 建議資料結構（Google Sheets）
+#### event_rsvps
+- id
+- event_id
+- user_id
+- status (going/maybe/not_going/no_response)
+- updated_at
+
+#### event_polls
+- id
+- event_id
+- title
+- created_at
+
+#### event_poll_options
+- id
+- poll_id
+- label
+- order
+
+#### event_votes
+- id
+- poll_id
+- option_id
+- user_id
+- created_at
+
 ## 註銷規則（裝置 / 服務）
 使用者可選擇註銷單一裝置或註銷整個服務。
 

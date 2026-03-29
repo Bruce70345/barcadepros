@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { User } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
+import NotificationBellLazy from "@/components/NotificationBellLazy";
 
 export default function AppBar() {
   return (
@@ -28,7 +28,7 @@ export default function AppBar() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <NotificationBell />
+          <NotificationBellLazy />
           <Link
             href="/edit"
             aria-label="Go to settings"

@@ -38,3 +38,42 @@ export async function postJson<T>(
 
   return res.json();
 }
+
+export async function patchJson<T>(
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {}
+): Promise<T> {
+  const res = await fetch(path, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const message = await parseErrorMessage(res);
+    throw new ApiError(message, res.status);
+  }
+
+  return res.json();
+}
+
+export async function getJson<T>(
+  path: string,
+  headers: Record<string, string> = {}
+): Promise<T> {
+  const res = await fetch(path, {
+    method: "GET",
+    headers,
+  });
+
+  if (!res.ok) {
+    const message = await parseErrorMessage(res);
+    throw new ApiError(message, res.status);
+  }
+
+  return res.json();
+}
