@@ -13,7 +13,7 @@ export default function JoinPage() {
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const joinUser = useJoinUser();
-  const { token, verified, handleVerify, handleError, handleExpire } =
+  const { token, verified, error, handleVerify, handleError, handleExpire } =
     useTurnstile();
   const { SystemToast, SystemLoading } = useGlobalContext();
 
@@ -23,6 +23,12 @@ export default function JoinPage() {
       router.replace("/");
     }
   }, [router]);
+
+  useEffect(() => {
+    if (error) {
+      console.error("Turnstile error:", error);
+    }
+  }, [error]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -41,6 +47,7 @@ export default function JoinPage() {
       return;
     }
     if (!verified || !token) {
+      console.warn("Turnstile verification missing.", { verified, token });
       SystemToast.showToast("Please complete the verification.", "warning");
       return;
     }
@@ -56,6 +63,7 @@ export default function JoinPage() {
       window.localStorage.setItem("userName", record.name);
       router.replace("/");
     } catch (err) {
+      console.error("Join failed:", err);
       SystemToast.showToast(
         err instanceof Error ? err.message : "Failed to join.",
         "error",
