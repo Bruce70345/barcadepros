@@ -1,40 +1,7 @@
 "use client";
-import { useModalContext } from "./modalContext";
-// import { pamexColor } from "@/styles/color";
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Tab,
-  Tabs,
-  Typography,
-} from "@mui/material";
-import { useEffect, useState } from "react";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`browser-tabpanel-${index}`}
-      aria-labelledby={`browser-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+import { useMemo, useState } from "react";
+import ModalShell from "@/components/ModalShell";
 
 interface NotificationGuideModalProps {
   open: boolean;
@@ -45,426 +12,214 @@ const NotificationGuideModal = ({
   open,
   onClose,
 }: NotificationGuideModalProps) => {
-  const [tabValue, setTabValue] = useState(0);
-  const [browserType, setBrowserType] = useState("chrome");
-  const [isPWA, setIsPWA] = useState(false);
-  const { openModal, closeModal } = useModalContext();
-
-  // 使用 ModalContext 管理模態框狀態
-  useEffect(() => {
-    if (open) {
-      openModal();
-    } else {
-      closeModal();
-    }
-    return () => {
-      closeModal();
-    };
-  }, [open, openModal, closeModal]);
-
-  // 檢測瀏覽器類型和 PWA 狀態
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      // 檢測是否為 PWA 模式
-      console.log(navigator.userAgent);
-      const isPWAMode =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true;
-      setIsPWA(isPWAMode);
-
-      // 如果是 PWA 模式，默認顯示 PWA 標籤頁
-      if (isPWAMode) {
-        setTabValue(0);
-        return;
-      }
-
-      // 否則檢測瀏覽器類型
-      const userAgent = navigator.userAgent.toLowerCase();
-      if (userAgent.indexOf("edge") > -1) {
-        setBrowserType("edge");
-        setTabValue(4);
-      } else if (userAgent.indexOf("firefox") > -1) {
-        setBrowserType("firefox");
-        setTabValue(2);
-      } else if (
-        userAgent.indexOf("safari") > -1 &&
-        userAgent.indexOf("chrome") === -1
-      ) {
-        setBrowserType("safari");
-        setTabValue(3);
-      } else {
-        // 默認為 Chrome 或基於 Chromium 的瀏覽器
-        setBrowserType("chrome");
-        setTabValue(1);
-      }
-    }
+  const initialTab = useMemo(() => {
+    if (typeof window === "undefined") return 0;
+    const isPWAMode =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+    if (isPWAMode) return 0;
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes("edge")) return 4;
+    if (userAgent.includes("firefox")) return 2;
+    if (userAgent.includes("safari") && !userAgent.includes("chrome")) return 3;
+    return 1;
   }, []);
+  const [tabValue, setTabValue] = useState(initialTab);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+  const tabs = [
+    { id: "pwa", label: "PWA App" },
+    { id: "chrome", label: "Chrome" },
+    { id: "firefox", label: "Firefox" },
+    { id: "safari", label: "Safari" },
+    { id: "edge", label: "Edge" },
+  ];
 
   // 根據設備類型顯示不同的 PWA 指南
   const renderPWAGuide = () => {
-    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isIOS =
+      typeof window !== "undefined" &&
+      /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
 
     return (
-      <Box
-        sx={{
-          mb: 2,
-         
-        }}
-      >
-        <Typography variant="h6" gutterBottom sx={{ color: "#ffffff" }}>
-          Enable Notifications for PWA App
-        </Typography>
-        <Typography variant="body1" paragraph>
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+            Enable Notifications for PWA App
+          </h3>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
           {`If you've installed our app to your home screen, you can enable
           notifications through your device settings:`}
-        </Typography>
+          </p>
+        </div>
         {isIOS ? (
           // iOS 設備指南
-          (<Box
-            sx={{
-              mb: 2,
-              "& .MuiBox-root": {
-                padding: "10px 10px",
-              },
-            }}
-          >
-            <Typography
-              variant="subtitle1"
-              fontWeight="bold"
-              gutterBottom
-              sx={{ color: "#3185ff" }}
-            >
+          (<div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
               For iOS devices:
-            </Typography>
-            <ol>
-              <li>
-                <Typography paragraph>1 . Go to your device Settings</Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  2 . Scroll down and tap on our app name
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`3 . Find "Notifications" and tap on it`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`4 . Toggle "Allow Notifications" to enable them`}
-                </Typography>
-              </li>
+            </div>
+            <ol className="mt-2 space-y-2 text-sm text-[var(--text-secondary)]">
+              <li>1. Go to your device Settings.</li>
+              <li>2. Scroll down and tap on our app name.</li>
+              <li>3. Find “Notifications” and tap on it.</li>
+              <li>4. Toggle “Allow Notifications” to enable them.</li>
             </ol>
-          </Box>)
+          </div>)
         ) : (
           // Android 設備指南
-          (<Box sx={{ mt: 3, mb: 2 }}>
-            <Typography
-              variant="subtitle1"
-              fontWeight="bold"
-              gutterBottom
-              sx={{ color: "#3185ff" }}
-            >
+          (<div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
               For Android devices:
-            </Typography>
-            <ol>
-              <li>
-                <Typography paragraph>1 . Go to your device Settings</Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`2 . Tap on "Apps" or "Applications"`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>3 . Find and tap on our app</Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`4 . Tap on "Permissions" or "Notifications"`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  5 . Enable notifications for the app
-                </Typography>
-              </li>
+            </div>
+            <ol className="mt-2 space-y-2 text-sm text-[var(--text-secondary)]">
+              <li>1. Go to your device Settings.</li>
+              <li>2. Tap on “Apps” or “Applications”.</li>
+              <li>3. Find and tap on our app.</li>
+              <li>4. Tap on “Permissions” or “Notifications”.</li>
+              <li>5. Enable notifications for the app.</li>
             </ol>
-          </Box>)
+          </div>)
         )}
-        <Typography variant="body2" color="grey" sx={{ mt: 2 }}>
+        <p className="text-xs text-[var(--text-muted)]">
           Note: After enabling notifications in your device settings, you may
           need to restart the app for the changes to take effect.
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   };
 
   return (
-    <Dialog
+    <ModalShell
       open={open}
       onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "4px",
-          bgcolor: "#333333",
-        },
-      }}
+      title="How to Enable Notifications"
+      description="Follow the steps below based on your browser."
     >
-      <DialogTitle
-        component="div"
-        sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.1)", pb: 2 }}
-      >
-        <Typography
-          variant="h6"
-          component="h2"
-          fontWeight="bold"
-          sx={{ color: "#ffffff" }}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <div
+          role="tablist"
+          aria-label="Browser tabs"
+          className="flex gap-2 overflow-x-auto pb-2"
         >
-          How to Enable Notifications
-        </Typography>
-        <Typography
-          component="p"
-          variant="subtitle1"
-          color="rgba(255, 255, 255, 0.7)"
-        >
-          Please follow these steps to enable notifications
-        </Typography>
-      </DialogTitle>
+          {tabs.map((tab, index) => {
+            const active = index === tabValue;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={active}
+                aria-controls={`browser-tabpanel-${index}`}
+                id={`browser-tab-${index}`}
+                type="button"
+                onClick={() => setTabValue(index)}
+                className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors ${
+                  active
+                    ? "border-[var(--primary)] bg-[color-mix(in oklab, var(--primary) 18%, var(--surface-2))] text-[var(--text-primary)]"
+                    : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
 
-      <DialogContent
-        sx={{
-          bgcolor: "#333333",
-          color: "#ffffff",
-          padding: "10px 10px",
-        }}
-      >
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          aria-label="browser tabs"
-          sx={{
-            mb: 2,
-            mt: 2,
-            borderBottom: 1,
-            borderColor: "rgba(255, 255, 255, 0.1)",
-            "& .MuiTabs-indicator": {
-              backgroundColor: "#3185ff",
-              color: "#3185ff",
-            },
-            "& .MuiTab-root": {
-              color: "rgba(255, 255, 255, 0.7)",
-              "&.Mui-selected": {
-                color: "#ffffff",
-                fontWeight: "bold",
-              },
-            },
-          }}
-        >
-          <Tab label="PWA App" />
-          <Tab label="Chrome" />
-          <Tab label="Firefox" />
-          <Tab label="Safari" />
-          <Tab label="Edge" />
-        </Tabs>
+        <div className="mt-4 text-sm text-[var(--text-secondary)]">
+          {tabValue === 0 && renderPWAGuide()}
 
-        {/* PWA App 指南 */}
-        <TabPanel value={tabValue} index={0}>
-          {renderPWAGuide()}
-        </TabPanel>
+          {tabValue === 1 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                Enable Notifications in Chrome
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Please follow the steps below:
+              </p>
+              <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                <li>1. Click the lock icon 🔒 in the address bar.</li>
+                <li>2. Find “Notifications” or “Site Settings”.</li>
+                <li>3. Change the setting from “Block” to “Allow”.</li>
+                <li>4. Refresh the page to apply the new settings.</li>
+              </ol>
+            </div>
+          )}
 
-        {/* Chrome 指南 */}
-        <TabPanel value={tabValue} index={1}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: "#ffffff" }}>
-              Enable Notifications in Chrome
-            </Typography>
-            <Typography variant="body1" paragraph>
-              please follow the steps below:
-            </Typography>
-            <ol>
-              <li>
-                <Typography paragraph>
-                  1 . Click on the lock icon 🔒 in the address bar
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`2 . Find "Notifications" or "Site Settings" in the popup menu`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`3 . Change the notification setting from "Block" to "Allow"`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  4 . Refresh the page to apply the new settings
-                </Typography>
-              </li>
-            </ol>
-          </Box>
-        </TabPanel>
+          {tabValue === 2 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                Enable Notifications in Firefox
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Please follow the steps below:
+              </p>
+              <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                <li>1. Click the lock or info icon (i) in the address bar.</li>
+                <li>2. Find “Notifications” permission settings.</li>
+                <li>3. Change the setting from “Block” to “Allow”.</li>
+                <li>4. Refresh the page to apply the new settings.</li>
+              </ol>
+            </div>
+          )}
 
-        {/* Firefox 指南 */}
-        <TabPanel value={tabValue} index={2}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: "#ffffff" }}>
-              Enable Notifications in Firefox
-            </Typography>
-            <Typography variant="body1" paragraph>
-              please follow the steps below:
-            </Typography>
-            <ol>
-              <li>
-                <Typography paragraph>
-                  1 . Click on the lock icon or info icon (i) in the address bar
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`2 . Find "Notifications" permission settings in the popup menu`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`3 . Change the notification setting from "Block" to "Allow"`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  4 . Refresh the page to apply the new settings
-                </Typography>
-              </li>
-            </ol>
-          </Box>
-        </TabPanel>
+          {tabValue === 3 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                Enable Notifications in Safari
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Please follow the steps below:
+              </p>
+              <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                <li>
+                  1. Click “Safari” in the menu bar and select “Preferences”.
+                </li>
+                <li>2. Select the “Websites” tab.</li>
+                <li>3. Select “Notifications” from the left menu.</li>
+                <li>
+                  4. Find this website and change the setting to “Allow”.
+                </li>
+                <li>5. Refresh the page to apply the new settings.</li>
+              </ol>
+            </div>
+          )}
 
-        {/* Safari 指南 */}
-        <TabPanel value={tabValue} index={3}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: "#ffffff" }}>
-              Enable Notifications in Safari
-            </Typography>
-            <Typography variant="body1" paragraph>
-              please follow the steps below:
-            </Typography>
-            <ol>
-              <li>
-                <Typography paragraph>
-                  {`1 . Click on "Safari" in the menu bar and select "Preferences"`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>{`2 . Select the "Websites" tab`}</Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`3 . Select "Notifications" from the left menu`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`4 . Find this website and change the setting from "Deny" to
-                  "Allow"`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  5 . Refresh the page to apply the new settings
-                </Typography>
-              </li>
-            </ol>
-          </Box>
-        </TabPanel>
+          {tabValue === 4 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                Enable Notifications in Edge
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Please follow the steps below:
+              </p>
+              <ol className="space-y-2 text-sm text-[var(--text-secondary)]">
+                <li>1. Click the lock icon 🔒 in the address bar.</li>
+                <li>2. Find “Notifications” or “Site permissions”.</li>
+                <li>3. Change the setting from “Block” to “Allow”.</li>
+                <li>4. Refresh the page to apply the new settings.</li>
+              </ol>
+            </div>
+          )}
 
-        {/* Edge 指南 */}
-        <TabPanel value={tabValue} index={4}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: "#ffffff" }}>
-              Enable Notifications in Edge
-            </Typography>
-            <Typography variant="body1" paragraph>
-              Please follow these steps:
-            </Typography>
-            <ol>
-              <li>
-                <Typography paragraph>
-                  Click on the lock icon 🔒 in the address bar
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`Find "Notifications" or "Site permissions" in the popup menu`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  {`Change the notification setting from "Block" to "Allow"`}
-                </Typography>
-              </li>
-              <li>
-                <Typography paragraph>
-                  Refresh the page to apply the new settings
-                </Typography>
-              </li>
-            </ol>
-          </Box>
-        </TabPanel>
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+              Note
+            </div>
+            <p className="mt-2 text-xs text-[var(--text-secondary)]">
+              If you still cannot receive notifications after enabling them,
+              make sure system notifications are turned on and your browser is
+              not in “Do Not Disturb” or “Focus” mode.
+            </p>
+          </div>
+        </div>
 
-        <Box
-          sx={{
-            mt: 2,
-            p: 2,
-            bgcolor: '#000',
-            borderRadius: 1,
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-          }}
-        >
-          <Typography
-            variant="subtitle1"
-            sx={{ color: "#3185ff", fontWeight: "bold" }}
-            gutterBottom
-          >
-            Note :
-          </Typography>
-          <Typography variant="body2">
-            {`If you still cannot receive notifications after enabling them, make
-            sure your system notification settings are also turned on and your
-            browser is not in "Do Not Disturb" or "Focus" mode.`}
-          </Typography>
-        </Box>
-      </DialogContent>
-
-      <DialogActions
-        sx={{ px: 3, py: 2, borderTop: "1px solid rgba(255, 255, 255, 0.1)" }}
-      >
-        <Button
+        <button
+          type="button"
           onClick={onClose}
-          sx={{
-            bgcolor: "#3185ff",
-            color: "white",
-            "&:hover": {
-              bgcolor: "rgba(56, 21, 255, 0.9)",
-            },
-            px: 4,
-          }}
-          variant="contained"
+          className="mt-4 w-full rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--background)]"
         >
           Got it
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </button>
+      </div>
+    </ModalShell>
   );
 };
 

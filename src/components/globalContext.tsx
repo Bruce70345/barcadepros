@@ -238,26 +238,26 @@ export const ConfirmDialog: FC<{
 }> = ({ isOpen, title, message, onConfirm, onCancel, count }) => {
   const isClient = useIsClient();
 
-  console.log("🎭 [ConfirmDialog] Render - isOpen:", isOpen, "count:", count);
+  // console.log("🎭 [ConfirmDialog] Render - isOpen:", isOpen, "count:", count);
 
   if (!isOpen || !isClient) {
-    console.log(
-      "🎭 [ConfirmDialog] Not rendering because isOpen is false or not mounted"
-    );
+    // console.log(
+    //   "🎭 [ConfirmDialog] Not rendering because isOpen is false or not mounted"
+    // );
     return null;
   }
 
   const handleConfirm = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("🎭 [ConfirmDialog] Confirm button clicked");
+    // console.log("🎭 [ConfirmDialog] Confirm button clicked");
     onConfirm();
   };
 
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("🎭 [ConfirmDialog] Cancel button clicked");
+    // console.log("🎭 [ConfirmDialog] Cancel button clicked");
     onCancel();
   };
 

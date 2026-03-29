@@ -173,7 +173,7 @@ Request
   "description": "集合地點：台北車站",
   "start_at": "2026-04-05T09:00:00+08:00",
   "send_realtime": true,
-  "recurrence_rule": "FREQ=WEEKLY;INTERVAL=1;BYDAY=SU",
+  "recurrence_rule": true,
   "turnstile_token": "token_from_turnstile"
 }
 ```
@@ -202,7 +202,7 @@ Response
     "description": "集合地點：台北車站",
     "start_at": "2026-04-05T09:00:00+08:00",
     "send_realtime": true,
-    "recurrence_rule": "FREQ=WEEKLY;INTERVAL=1;BYDAY=SU"
+    "recurrence_rule": true
   }
 ]
 ```
@@ -218,6 +218,7 @@ Request
   "description": "更新內容",
   "start_at": "2026-04-06T10:00:00+08:00",
   "send_realtime": false,
+  "recurrence_rule": false,
   "turnstile_token": "token_from_turnstile"
 }
 ```
