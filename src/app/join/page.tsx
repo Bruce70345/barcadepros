@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import { useJoinUser } from "@/hooks/useJoinUser";
+import { useTurnstile } from "@/hooks/useTurnstile";
 
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function JoinPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const joinUser = useJoinUser();
+  const { token, verified, handleVerify, handleError, handleExpire } =
+    useTurnstile();
 
   useEffect(() => {
     const userId = window.localStorage.getItem("userId");
@@ -16,7 +22,7 @@ export default function JoinPage() {
     }
   }, [router]);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
@@ -27,10 +33,23 @@ export default function JoinPage() {
       setError("Display name must be under 50 characters.");
       return;
     }
-    const userId = crypto.randomUUID();
-    window.localStorage.setItem("userId", userId);
-    window.localStorage.setItem("userName", trimmed);
-    router.replace("/");
+    if (!verified || !token) {
+      setError("Please complete the verification.");
+      return;
+    }
+    setError("");
+
+    try {
+      const record = await joinUser.mutateAsync({
+        name: trimmed,
+        turnstileToken: token,
+      });
+      window.localStorage.setItem("userId", record.id);
+      window.localStorage.setItem("userName", record.name);
+      router.replace("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to join.");
+    }
   };
 
   return (
@@ -58,11 +77,19 @@ export default function JoinPage() {
             </p>
           )}
 
+          <TurnstileWidget
+            className="pt-1"
+            onVerify={handleVerify}
+            onError={handleError}
+            onExpire={handleExpire}
+          />
+
           <button
             type="submit"
-            className="w-full rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--background)]"
+            className="w-full rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--background)] disabled:opacity-60"
+            disabled={joinUser.isPending}
           >
-            Continue
+            {joinUser.isPending ? "Saving..." : "Continue"}
           </button>
         </form>
 

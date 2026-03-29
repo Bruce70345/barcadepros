@@ -9,7 +9,6 @@ export const SHEET_HEADERS = {
     "is_admin",
     "deactivated_at",
     "created_at",
-    "updated_at",
   ],
   user_devices: [
     "id",
@@ -43,12 +42,18 @@ export const SHEET_HEADERS = {
 
 type SheetName = keyof typeof SHEET_HEADERS;
 
+const OPTIONAL_HEADERS: Partial<Record<SheetName, string[]>> = {
+  users: ["updated_at"],
+};
+
 export function assertHeaders(sheet: SheetName, headers: string[]) {
   const expected = SHEET_HEADERS[sheet];
+  const optional = OPTIONAL_HEADERS[sheet] || [];
   const missing = expected.filter((h) => !headers.includes(h));
-  if (missing.length > 0) {
+  const missingRequired = missing.filter((h) => !optional.includes(h));
+  if (missingRequired.length > 0) {
     throw new Error(
-      `Sheet '${sheet}' missing headers: ${missing.join(", ")}`
+      `Sheet '${sheet}' missing headers: ${missingRequired.join(", ")}`
     );
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useInitFcm } from "@/hooks/useInitFcm";
 
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function MainPage() {
@@ -14,9 +15,11 @@ export default function MainPage() {
     }
   }, [router]);
 
+  useInitFcm(true);
+
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto w-full max-w-3xl px-5 py-8">
+      <div className="mx-auto w-full max-w-md px-5 py-8">
         {/* App Bar
             - App name
             - Today button / current date
