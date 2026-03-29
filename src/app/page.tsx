@@ -151,6 +151,33 @@ export default function MainPage() {
     }
   };
 
+  const handleTestDigest = async () => {
+    if (!verified || !token) {
+      SystemToast.showToast("Verification required before testing.", "warning");
+      return;
+    }
+    SystemLoading.loadingStart({ loadingText: "Sending digest test..." });
+    try {
+      const res = await fetch("/api/notifications/send-digest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ turnstile_token: token }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to send digest");
+      }
+      SystemToast.showToast("Test digest sent.", "success");
+    } catch (error) {
+      SystemToast.showToast(
+        error instanceof Error ? error.message : "Test failed.",
+        "error",
+      );
+    } finally {
+      SystemLoading.loadingEnd();
+    }
+  };
+
   return (
     <main className="flex-1 bg-[var(--background)] text-[var(--foreground)]">
       <div className="mx-auto w-full max-w-md px-5 py-8">
@@ -164,13 +191,22 @@ export default function MainPage() {
         )}
 
         {process.env.NODE_ENV !== "production" && (
-          <button
-            type="button"
-            onClick={handleTestRealtime}
-            className="mb-4 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))]"
-          >
-            Send Test Realtime Notification
-          </button>
+          <div className="mb-4 grid gap-2">
+            <button
+              type="button"
+              onClick={handleTestRealtime}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))]"
+            >
+              Send Test Realtime Notification
+            </button>
+            <button
+              type="button"
+              onClick={handleTestDigest}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))]"
+            >
+              Send Test Digest Notification
+            </button>
+          </div>
         )}
 
         <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">

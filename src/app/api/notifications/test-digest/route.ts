@@ -4,10 +4,9 @@ import {
   listActiveUsersByPreference,
   listEventsInRange,
 } from "@/server/appStore";
-import { requireCronSecret } from "@/server/cronAuth";
-import { getAdminMessaging } from "@/server/firebaseAdmin";
-import { requireIsoDate } from "@/server/validation";
+import { requireRateLimit } from "@/server/rateLimit";
 import { requireTurnstile } from "@/server/turnstile";
+import { getAdminMessaging } from "@/server/firebaseAdmin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,7 +20,6 @@ function chunk<T>(items: T[], size: number) {
 }
 
 export async function POST(request: Request) {
-  const isDev = process.env.NODE_ENV !== "production";
   let body: { now?: string; turnstile_token?: string } | null = null;
   try {
     body = await request.json();
@@ -29,20 +27,15 @@ export async function POST(request: Request) {
     body = null;
   }
 
-  const cronError = requireCronSecret(request);
-  if (cronError) {
-    if (!isDev) return cronError;
-    const turnstileError = await requireTurnstile(body?.turnstile_token);
-    if (turnstileError) return cronError;
-  }
+  const turnstileError = await requireTurnstile(body?.turnstile_token);
+  if (turnstileError) return turnstileError;
+
+  const rateLimitError = requireRateLimit(request, 2);
+  if (rateLimitError) return rateLimitError;
 
   const now = body?.now ? new Date(body.now) : new Date();
   if (Number.isNaN(now.getTime())) {
     return Response.json({ message: "invalid now" }, { status: 400 });
-  }
-  if (body?.now) {
-    const nowError = requireIsoDate(body.now, "now");
-    if (nowError) return nowError;
   }
 
   const to = new Date(now.getTime() + 72 * 60 * 60 * 1000);
