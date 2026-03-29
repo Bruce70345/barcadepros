@@ -5,13 +5,14 @@
 ## 1) 使用者
 
 ### POST /api/users/upsert
-建立或更新使用者（依 email）。
+建立或更新使用者（name 必填，email 可選）。
 
 Request
 ```json
 {
+  "name": "Alice",
   "email": "user@example.com",
-  "name": "Alice"
+  "turnstile_token": "token_from_turnstile"
 }
 ```
 
@@ -22,7 +23,27 @@ Response
   "email": "user@example.com",
   "name": "Alice",
   "receive_realtime": true,
-  "receive_digest": true
+  "receive_digest": true,
+  "is_admin": false
+}
+```
+
+### PATCH /api/users/name
+更新使用者名稱。
+
+Request
+```json
+{
+  "user_id": "user_123",
+  "name": "Alice Chen",
+  "turnstile_token": "token_from_turnstile"
+}
+```
+
+Response
+```json
+{
+  "ok": true
 }
 ```
 
@@ -149,7 +170,8 @@ Request
   "description": "集合地點：台北車站",
   "start_at": "2026-04-05T09:00:00+08:00",
   "send_realtime": true,
-  "recurrence_rule": "FREQ=WEEKLY;INTERVAL=1;BYDAY=SU"
+  "recurrence_rule": "FREQ=WEEKLY;INTERVAL=1;BYDAY=SU",
+  "turnstile_token": "token_from_turnstile"
 }
 ```
 
@@ -182,6 +204,46 @@ Response
 ]
 ```
 
+### PATCH /api/events/:id
+更新事件（需事件擁有者或 admin）。
+
+Request
+```json
+{
+  "user_id": "user_123",
+  "title": "更新後標題",
+  "description": "更新內容",
+  "start_at": "2026-04-06T10:00:00+08:00",
+  "send_realtime": false,
+  "turnstile_token": "token_from_turnstile"
+}
+```
+
+Response
+```json
+{
+  "ok": true
+}
+```
+
+### DELETE /api/events/:id
+刪除事件（需事件擁有者或 admin）。
+
+Request
+```json
+{
+  "user_id": "user_123",
+  "turnstile_token": "token_from_turnstile"
+}
+```
+
+Response
+```json
+{
+  "ok": true
+}
+```
+
 ## 4) 通知
 
 ### POST /api/notifications/send-realtime
@@ -190,7 +252,8 @@ Response
 Request
 ```json
 {
-  "event_id": "event_789"
+  "event_id": "event_789",
+  "turnstile_token": "token_from_turnstile"
 }
 ```
 

@@ -5,6 +5,7 @@ import {
   listActiveUsersByPreference,
 } from "@/server/appStore";
 import { getAdminMessaging } from "@/server/firebaseAdmin";
+import { requireTurnstile } from "@/server/turnstile";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,12 +31,15 @@ function chunk<T>(items: T[], size: number) {
 }
 
 export async function POST(request: Request) {
-  let body: { event_id?: string } | null = null;
+  let body: { event_id?: string; turnstile_token?: string } | null = null;
   try {
     body = await request.json();
   } catch {
     body = null;
   }
+
+  const turnstileError = await requireTurnstile(body?.turnstile_token);
+  if (turnstileError) return turnstileError;
 
   if (!body?.event_id) {
     return Response.json({ message: "event_id is required" }, { status: 400 });

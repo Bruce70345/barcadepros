@@ -1,4 +1,5 @@
 import { createEvent, listEventsInRange } from "@/server/appStore";
+import { requireTurnstile } from "@/server/turnstile";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
         start_at?: string;
         send_realtime?: boolean;
         recurrence_rule?: string;
+        turnstile_token?: string;
       }
     | null = null;
   try {
@@ -20,6 +22,9 @@ export async function POST(request: Request) {
   } catch {
     body = null;
   }
+
+  const turnstileError = await requireTurnstile(body?.turnstile_token);
+  if (turnstileError) return turnstileError;
 
   if (!body?.user_id) {
     return Response.json({ message: "user_id is required" }, { status: 400 });

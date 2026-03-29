@@ -33,8 +33,11 @@
 - receive_realtime (TRUE/FALSE)
 - receive_digest (TRUE/FALSE)
 - is_active (TRUE/FALSE)
+- is_admin (TRUE/FALSE)
 - deactivated_at
 - created_at
+
+規則：`name` 為必填，`email` 可為空。
 
 ### user_devices
 - id
@@ -166,3 +169,10 @@
 - `/api/notifications/send-digest` 只允許 Cron 呼叫（使用 secret header）。
 - `/api/notifications/send-realtime` 只允許後端內部呼叫或使用 secret header。
 - 同一服務 5 分鐘內最多發送一次推播。
+
+## 使用者規則
+- 使用者可修改自己的名稱（更新 `users.name`）。
+
+## 事件擁有者
+- `events.user_id` 為事件擁有者。
+- 後續事件更新/刪除需驗證 `user_id` 與事件擁有者一致。

@@ -1,21 +1,27 @@
-import { upsertUserByEmail } from "@/server/appStore";
+import { upsertUser } from "@/server/appStore";
+import { requireTurnstile } from "@/server/turnstile";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  let body: { email?: string; name?: string } | null = null;
+  let body:
+    | { email?: string; name?: string; turnstile_token?: string }
+    | null = null;
   try {
     body = await request.json();
   } catch {
     body = null;
   }
 
-  const email = body?.email?.trim();
-  if (!email) {
-    return Response.json({ message: "email is required" }, { status: 400 });
+  const turnstileError = await requireTurnstile(body?.turnstile_token);
+  if (turnstileError) return turnstileError;
+
+  const name = body?.name?.trim();
+  if (!name) {
+    return Response.json({ message: "name is required" }, { status: 400 });
   }
 
-  const record = await upsertUserByEmail({ email, name: body?.name });
+  const record = await upsertUser({ name, email: body?.email });
   return Response.json(record, { status: 200 });
 }

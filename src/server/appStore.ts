@@ -14,10 +14,11 @@ const SHEET_NOTIFICATIONS = "notifications";
 type UserRecord = {
   id: string;
   email: string;
-  name?: string;
+  name: string;
   receive_realtime: boolean;
   receive_digest: boolean;
   is_active: boolean;
+  is_admin: boolean;
   deactivated_at?: string;
   created_at: string;
   updated_at: string;
@@ -90,6 +91,7 @@ async function loadUsers() {
     receive_realtime: toBool((u as any).receive_realtime),
     receive_digest: toBool((u as any).receive_digest),
     is_active: toBool((u as any).is_active),
+    is_admin: toBool((u as any).is_admin),
   }));
   return { headers, rows, mapped };
 }
@@ -118,19 +120,23 @@ async function loadNotifications() {
   return { headers, rows, mapped };
 }
 
-export async function upsertUserByEmail(input: {
-  email: string;
-  name?: string;
+export async function upsertUser(input: {
+  name: string;
+  email?: string;
 }): Promise<UserRecord> {
   const { headers, rows, mapped } = await loadUsers();
-  const target = input.email.trim().toLowerCase();
-  const existing = mapped.find((u) => u.email?.toLowerCase() === target);
+  const nameTarget = input.name.trim();
+  const emailTarget = input.email?.trim().toLowerCase() || "";
+  const existing = emailTarget
+    ? mapped.find((u) => u.email?.toLowerCase() === emailTarget)
+    : mapped.find((u) => u.name === nameTarget);
   const now = nowIso();
 
   if (existing) {
     const updated: UserRecord = {
       ...existing,
-      name: input.name ?? existing.name,
+      name: nameTarget,
+      email: emailTarget || existing.email,
       is_active: true,
       deactivated_at: "",
       updated_at: now,
@@ -141,6 +147,7 @@ export async function upsertUserByEmail(input: {
       receive_realtime: fromBool(updated.receive_realtime),
       receive_digest: fromBool(updated.receive_digest),
       is_active: fromBool(updated.is_active),
+      is_admin: fromBool(updated.is_admin),
       deactivated_at: updated.deactivated_at || "",
     } as any);
     await updateRow(SHEET_USERS, rowNumber, row);
@@ -150,11 +157,12 @@ export async function upsertUserByEmail(input: {
   const id = crypto.randomUUID();
   const record: UserRecord = {
     id,
-    email: input.email,
-    name: input.name,
+    email: emailTarget,
+    name: nameTarget,
     receive_realtime: true,
     receive_digest: true,
     is_active: true,
+    is_admin: false,
     created_at: now,
     updated_at: now,
   };
@@ -164,6 +172,7 @@ export async function upsertUserByEmail(input: {
     receive_realtime: fromBool(record.receive_realtime),
     receive_digest: fromBool(record.receive_digest),
     is_active: fromBool(record.is_active),
+    is_admin: fromBool(record.is_admin),
     deactivated_at: "",
   } as any);
   await appendRow(SHEET_USERS, row);
@@ -197,6 +206,33 @@ export async function updateUserPreferences(input: {
     receive_realtime: fromBool(updated.receive_realtime),
     receive_digest: fromBool(updated.receive_digest),
     is_active: fromBool(updated.is_active),
+    is_admin: fromBool(updated.is_admin),
+    deactivated_at: updated.deactivated_at || "",
+  } as any);
+  await updateRow(SHEET_USERS, rowNumber, row);
+  return updated;
+}
+
+export async function updateUserName(input: {
+  user_id: string;
+  name: string;
+}): Promise<UserRecord | null> {
+  const { headers, mapped } = await loadUsers();
+  const existing = mapped.find((u) => u.id === input.user_id);
+  if (!existing) return null;
+  const now = nowIso();
+  const updated: UserRecord = {
+    ...existing,
+    name: input.name.trim(),
+    updated_at: now,
+  };
+  const rowNumber = mapped.indexOf(existing) + 2;
+  const row = buildRow(headers, {
+    ...updated,
+    receive_realtime: fromBool(updated.receive_realtime),
+    receive_digest: fromBool(updated.receive_digest),
+    is_active: fromBool(updated.is_active),
+    is_admin: fromBool(updated.is_admin),
     deactivated_at: updated.deactivated_at || "",
   } as any);
   await updateRow(SHEET_USERS, rowNumber, row);
@@ -220,6 +256,7 @@ export async function deactivateUser(user_id: string): Promise<UserRecord | null
     receive_realtime: fromBool(updated.receive_realtime),
     receive_digest: fromBool(updated.receive_digest),
     is_active: fromBool(updated.is_active),
+    is_admin: fromBool(updated.is_admin),
     deactivated_at: updated.deactivated_at || "",
   } as any);
   await updateRow(SHEET_USERS, rowNumber, row);
@@ -237,6 +274,11 @@ export async function listActiveUsersByPreference(input: {
     if (input.digest && !u.receive_digest) return false;
     return true;
   });
+}
+
+export async function getUserById(user_id: string): Promise<UserRecord | null> {
+  const { mapped } = await loadUsers();
+  return mapped.find((u) => u.id === user_id) ?? null;
 }
 
 export async function upsertDevice(input: {
@@ -381,6 +423,51 @@ export async function createEvent(input: {
 export async function getEventById(id: string): Promise<EventRecord | null> {
   const { mapped } = await loadEvents();
   return mapped.find((e) => e.id === id) ?? null;
+}
+
+export async function updateEvent(
+  id: string,
+  input: {
+    title?: string;
+    category?: string;
+    description?: string;
+    start_at?: string;
+    send_realtime?: boolean;
+    recurrence_rule?: string;
+  }
+): Promise<EventRecord | null> {
+  const { headers, mapped } = await loadEvents();
+  const existing = mapped.find((e) => e.id === id);
+  if (!existing) return null;
+  const updated: EventRecord = {
+    ...existing,
+    title: input.title ?? existing.title,
+    category: input.category ?? existing.category,
+    description: input.description ?? existing.description,
+    start_at: input.start_at ?? existing.start_at,
+    send_realtime:
+      typeof input.send_realtime === "boolean"
+        ? input.send_realtime
+        : existing.send_realtime,
+    recurrence_rule: input.recurrence_rule ?? existing.recurrence_rule,
+  };
+  const rowNumber = mapped.indexOf(existing) + 2;
+  const row = buildRow(headers, {
+    ...updated,
+    send_realtime: fromBool(updated.send_realtime),
+  } as any);
+  await updateRow(SHEET_EVENTS, rowNumber, row);
+  return updated;
+}
+
+export async function deleteEvent(id: string): Promise<boolean> {
+  const { headers, mapped } = await loadEvents();
+  const existing = mapped.find((e) => e.id === id);
+  if (!existing) return false;
+  const rowNumber = mapped.indexOf(existing) + 2;
+  const emptyRow = buildRow(headers, {});
+  await updateRow(SHEET_EVENTS, rowNumber, emptyRow);
+  return true;
 }
 
 export async function listEventsInRange(input: {
