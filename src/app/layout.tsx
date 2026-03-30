@@ -16,9 +16,32 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Barcade Pros",
-  description: "",
+  description: "Barcade Pros event calendar",
+  openGraph: {
+    title: "Barcade Pros",
+    description: "Barcade Pros event calendar",
+    type: "website",
+    url: "/",
+    images: [
+      {
+        url: "/icons/PWALogo.png",
+        width: 512,
+        height: 512,
+        alt: "Barcade Pros",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Barcade Pros",
+    description: "Barcade Pros event calendar",
+    images: ["/icons/PWALogo.png"],
+  },
 };
 
 export default function RootLayout({
