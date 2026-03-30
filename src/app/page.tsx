@@ -47,7 +47,7 @@ export default function MainPage() {
   const createEvent = useCreateEvent(range);
   const updateEvent = useUpdateEvent(range);
   const deleteEvent = useDeleteEvent(range);
-  const { token, verified } = useTurnstileContext();
+  const { token, verified, reset } = useTurnstileContext();
   const { SystemToast, SystemLoading, SystemConfirm } = useGlobalContext();
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
@@ -362,33 +362,34 @@ export default function MainPage() {
                                 SystemConfirm.showConfirm(
                                   "Delete event",
                                   "This action cannot be undone.",
-                                  async () => {
-                                    SystemLoading.loadingStart({
-                                      loadingText: "Deleting event...",
-                                    });
-                                    try {
-                                      await deleteEvent.mutateAsync({
-                                        id: event.id,
-                                        user_id: userId,
-                                        turnstile_token: token,
-                                      });
-                                      SystemToast.showToast(
-                                        "Event deleted.",
-                                        "success",
-                                      );
-                                    } catch (error) {
-                                      SystemToast.showToast(
-                                        error instanceof Error
-                                          ? error.message
-                                          : "Failed to delete event.",
-                                        "error",
-                                      );
-                                    } finally {
-                                      SystemLoading.loadingEnd();
-                                    }
-                                  }
-                                );
-                              }}
+                              async () => {
+                                SystemLoading.loadingStart({
+                                  loadingText: "Deleting event...",
+                                });
+                                try {
+                                  await deleteEvent.mutateAsync({
+                                    id: event.id,
+                                    user_id: userId,
+                                    turnstile_token: token,
+                                  });
+                                  SystemToast.showToast(
+                                    "Event deleted.",
+                                    "success",
+                                  );
+                                } catch (error) {
+                                  SystemToast.showToast(
+                                    error instanceof Error
+                                      ? error.message
+                                      : "Failed to delete event.",
+                                    "error",
+                                  );
+                                } finally {
+                                  SystemLoading.loadingEnd();
+                                  reset();
+                                }
+                              }
+                            );
+                          }}
                               className="rounded-full border border-[color-mix(in oklab, var(--danger) 40%, var(--border))] bg-[color-mix(in oklab, var(--danger) 16%, var(--surface-2))] px-3 py-1 text-xs text-[var(--danger)]"
                             >
                               Delete
@@ -491,6 +492,7 @@ export default function MainPage() {
               );
             } finally {
               SystemLoading.loadingEnd();
+              reset();
             }
           }}
         />
@@ -563,6 +565,7 @@ export default function MainPage() {
                   );
                 } finally {
                   SystemLoading.loadingEnd();
+                  reset();
                 }
               }}
             />

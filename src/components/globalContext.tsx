@@ -263,7 +263,7 @@ export const ConfirmDialog: FC<{
 
   return (
     <div
-      className="pointer-events-auto fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
+      className="pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center bg-black/60"
       onClick={(e) => {
         e.stopPropagation();
       }}
@@ -275,7 +275,7 @@ export const ConfirmDialog: FC<{
       }}
     >
       <div
-        className="bg-white dark:bg-card rounded-lg p-4 max-w-sm mx-4 shadow-xl"
+        className="mx-4 w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl"
         onClick={(e) => {
           e.stopPropagation();
         }}
@@ -287,25 +287,28 @@ export const ConfirmDialog: FC<{
         }}
       >
         {/* 對話框標題 */}
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-200 mb-4">
-          {title}
-        </h3>
+        <div className="mb-3">
+          <div className="mb-2 h-1.5 w-12 rounded-full bg-[color-mix(in oklab, var(--primary) 55%, transparent)]" />
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">
+            {title}
+          </h3>
+        </div>
         {/* 確認訊息 */}
-        <p className="text-gray-600 dark:text-gray-400 mb-6 break-words overflow-wrap-anywhere whitespace-pre-line max-w-full">
+        <p className="mb-6 max-w-full break-words overflow-wrap-anywhere whitespace-pre-line text-sm text-[var(--text-secondary)]">
           {message}
         </p>
         {/* 操作按鈕組 */}
         <div className="flex gap-3 justify-end">
           {/* 取消按鈕 */}
           <button
-            className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+            className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))]"
             onClick={handleCancel}
           >
             Cancel
           </button>
           {/* 確認按鈕 */}
           <button
-            className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-full transition-colors"
+            className="rounded-full border border-[color-mix(in oklab, var(--danger) 40%, var(--border))] bg-[color-mix(in oklab, var(--danger) 20%, var(--surface))] px-4 py-2 text-sm text-[var(--danger)] transition-colors hover:bg-[color-mix(in oklab, var(--danger) 32%, var(--surface))]"
             onClick={handleConfirm}
           >
             Confirm

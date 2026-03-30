@@ -13,7 +13,8 @@ import {
 
 export default function FloatingActionBar() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const { handleVerify, handleError, handleExpire } = useTurnstileContext();
+  const { handleVerify, handleError, handleExpire, setWidgetId } =
+    useTurnstileContext();
   const pathname = usePathname();
   const handleAddEvent = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -80,6 +81,7 @@ export default function FloatingActionBar() {
         onVerify={handleVerify}
         onError={handleError}
         onExpire={handleExpire}
+        onWidgetId={setWidgetId}
       />
     </div>
   );

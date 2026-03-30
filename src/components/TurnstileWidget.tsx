@@ -19,6 +19,7 @@ type TurnstileWidgetProps = {
   onVerify: (token: string) => void;
   onError?: () => void;
   onExpire?: () => void;
+  onWidgetId?: (id: string) => void;
   className?: string;
   size?: TurnstileOptions["size"];
   theme?: TurnstileOptions["theme"];
@@ -29,6 +30,7 @@ declare global {
   interface Window {
     turnstile?: {
       render: (el: HTMLElement, options: TurnstileOptions & { callback: (token: string) => void; "error-callback"?: () => void; "expired-callback"?: () => void; }) => string;
+      reset?: (widgetId: string) => void;
       remove: (widgetId: string) => void;
     };
   }
@@ -39,6 +41,7 @@ export default function TurnstileWidget({
   onVerify,
   onError,
   onExpire,
+  onWidgetId,
   className,
   size = "invisible",
   theme = "auto",
@@ -84,6 +87,7 @@ export default function TurnstileWidget({
         "expired-callback": onExpire,
       });
       widgetIdRef.current = id;
+      onWidgetId?.(id);
     };
 
     tryRender();
