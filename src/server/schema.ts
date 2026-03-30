@@ -23,6 +23,7 @@ export const SHEET_HEADERS = {
     "user_id",
     "title",
     "category",
+    "location",
     "description",
     "start_at",
     "send_realtime",

@@ -45,7 +45,7 @@ export default function ModalShell({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-5">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center px-5">
       <button
         type="button"
         aria-label="Close modal"

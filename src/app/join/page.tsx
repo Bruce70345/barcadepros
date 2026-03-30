@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useJoinUser } from "@/hooks/useJoinUser";
 import { useTurnstileContext } from "@/components/turnstileContext";
 import { useGlobalContext } from "@/components/globalContext";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function JoinPage() {
@@ -13,7 +14,8 @@ export default function JoinPage() {
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const joinUser = useJoinUser();
-  const { token, verified, error } = useTurnstileContext();
+  const { token, verified, error, handleVerify, handleError, handleExpire, setWidgetId } =
+    useTurnstileContext();
   const { SystemToast, SystemLoading } = useGlobalContext();
 
   useEffect(() => {
@@ -123,6 +125,13 @@ export default function JoinPage() {
           Note: Others will see your name when you add events. You can change it
           later in settings.
         </p>
+        <TurnstileWidget
+          className="pt-1"
+          onVerify={handleVerify}
+          onError={handleError}
+          onExpire={handleExpire}
+          onWidgetId={setWidgetId}
+        />
       </div>
     </main>
   );

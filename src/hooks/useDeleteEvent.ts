@@ -1,17 +1,17 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { eventsQueryKey } from "@/hooks/useEvents";
 
 type DeleteEventInput = {
   id: string;
   user_id: string;
   turnstile_token: string;
+  series_action?: "single" | "rest";
 };
 
 type DeleteEventResponse = { ok: true };
 
-export function useDeleteEvent(range: { from: string; to: string }) {
+export function useDeleteEvent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: DeleteEventInput): Promise<DeleteEventResponse> => {
@@ -21,6 +21,7 @@ export function useDeleteEvent(range: { from: string; to: string }) {
         body: JSON.stringify({
           user_id: payload.user_id,
           turnstile_token: payload.turnstile_token,
+          series_action: payload.series_action,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -30,7 +31,7 @@ export function useDeleteEvent(range: { from: string; to: string }) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventsQueryKey(range) });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
   });
 }

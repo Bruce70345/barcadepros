@@ -1,12 +1,12 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { eventsQueryKey } from "@/hooks/useEvents";
 
 type CreateEventInput = {
   user_id: string;
   title: string;
   category?: string;
+  location?: string;
   description?: string;
   start_at: string;
   send_realtime: boolean;
@@ -16,7 +16,7 @@ type CreateEventInput = {
 
 type CreateEventResponse = { id: string };
 
-export function useCreateEvent(range: { from: string; to: string }) {
+export function useCreateEvent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: CreateEventInput): Promise<CreateEventResponse> => {
@@ -32,7 +32,7 @@ export function useCreateEvent(range: { from: string; to: string }) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventsQueryKey(range) });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
   });
 }

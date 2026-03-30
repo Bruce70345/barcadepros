@@ -22,6 +22,7 @@
 
 ## 核心規則
 - 活動有分類（如：吃飯、戶外活動、文化體驗、酒吧、週末旅行、大旅行），僅供展示與篩選，不影響推播邏輯。
+- 活動可填 `location` 作為地點描述，僅供顯示與搜尋。
 - 建立活動時可選擇是否「即時通知」。
 - 使用者可設定是否接收「即時通知」與「彙整通知」。
 - 靜音時段固定為 22:00-08:00，靜音時段內不接收即時通知（不需存使用者設定）。
@@ -69,9 +70,11 @@
 - user_id
 - title
 - category
+- location
 - description
 - start_at
 - send_realtime (TRUE/FALSE)
+- recurrence_rule
 - created_at
 
 ### notifications
@@ -219,6 +222,7 @@
 - `email` < 200
 - `name` < 50
 - `title` < 100
+- `location` < 200
 - `description` < 1000
 
 ### 推播 API 限制

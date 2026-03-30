@@ -8,6 +8,7 @@ export type EventRecord = {
   owner_name?: string;
   title: string;
   category?: string;
+  location?: string;
   description?: string;
   start_at: string;
   send_realtime: boolean;

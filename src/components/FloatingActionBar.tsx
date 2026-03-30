@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { usePathname } from "next/navigation";
-import { Calendar, Music, Notebook, Plus } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Calendar, Home, Music, Notebook, Plus } from "lucide-react";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { useTurnstileContext } from "@/components/turnstileContext";
 import {
@@ -16,6 +16,7 @@ export default function FloatingActionBar() {
   const { handleVerify, handleError, handleExpire, setWidgetId } =
     useTurnstileContext();
   const pathname = usePathname();
+  const router = useRouter();
   const handleAddEvent = useCallback(() => {
     if (typeof window === "undefined") return;
     window.dispatchEvent(new Event(OPEN_EVENT_MODAL_EVENT));
@@ -30,6 +31,8 @@ export default function FloatingActionBar() {
   }, []);
 
   if (pathname === "/join") return null;
+
+  const isEditPage = pathname === "/edit";
 
   return (
     <div className="fixed inset-x-0 bottom-6 mx-auto w-full max-w-md px-5">
@@ -52,28 +55,38 @@ export default function FloatingActionBar() {
 
           <button
             type="button"
-            aria-label="Add event"
-            onClick={handleAddEvent}
+            aria-label={isEditPage ? "Go to home" : "Add event"}
+            onClick={() => {
+              if (isEditPage) {
+                router.push("/");
+                return;
+              }
+              handleAddEvent();
+            }}
             className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--primary) 70%, var(--border))] bg-[var(--primary)] text-[var(--background)] shadow-md shadow-[color-mix(in oklab, var(--primary) 35%, transparent)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
           >
-            <Plus size={24} />
+            {isEditPage ? <Home size={24} /> : <Plus size={24} />}
           </button>
-          <button
-            type="button"
-            aria-label="Show calendar view"
-            onClick={handleShowCalendar}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-          >
-            <Calendar size={20} />
-          </button>
-          <button
-            type="button"
-            aria-label="Show list view"
-            onClick={handleShowList}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-          >
-            <Notebook size={20} />
-          </button>
+          {!isEditPage && (
+            <>
+              <button
+                type="button"
+                aria-label="Show calendar view"
+                onClick={handleShowCalendar}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+              >
+                <Calendar size={20} />
+              </button>
+              <button
+                type="button"
+                aria-label="Show list view"
+                onClick={handleShowList}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+              >
+                <Notebook size={20} />
+              </button>
+            </>
+          )}
         </div>
       </div>
       <TurnstileWidget

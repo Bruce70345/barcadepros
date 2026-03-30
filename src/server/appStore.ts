@@ -11,6 +11,9 @@ const SHEET_USERS = "users";
 const SHEET_DEVICES = "user_devices";
 const SHEET_EVENTS = "events";
 const SHEET_NOTIFICATIONS = "notifications";
+const RECURRENCE_END_DATE = new Date(Date.UTC(2026, 5, 30, 23, 59, 59, 999));
+const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+const RECURRENCE_SERIES_KEY = "SERIES";
 
 type UserRecord = {
   id: string;
@@ -39,6 +42,7 @@ type EventRecord = {
   user_id: string;
   title: string;
   category?: string;
+  location?: string;
   description?: string;
   start_at: string;
   send_realtime: boolean;
@@ -83,6 +87,47 @@ function mapRows<T>(headers: string[], rows: string[][]): T[] {
 
 function buildRow(headers: string[], data: Record<string, string>) {
   return headers.map((h) => data[h] ?? "");
+}
+
+function parseRecurrenceRule(rule?: string) {
+  if (!rule) return null;
+  const parts = rule
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const map = new Map<string, string>();
+  parts.forEach((part) => {
+    const [key, value] = part.split("=");
+    if (!key || !value) return;
+    map.set(key.toUpperCase(), value);
+  });
+  return {
+    freq: map.get("FREQ"),
+    interval: map.get("INTERVAL"),
+    byday: map.get("BYDAY"),
+    seriesId: map.get(RECURRENCE_SERIES_KEY),
+    parts,
+  };
+}
+
+function ensureSeriesId(rule?: string, seriesId?: string) {
+  if (!rule) return { rule, seriesId: undefined };
+  const parsed = parseRecurrenceRule(rule);
+  const existing = parsed?.seriesId;
+  const finalId = existing || seriesId || crypto.randomUUID();
+  if (existing) return { rule, seriesId: existing };
+  const parts = parsed?.parts ? [...parsed.parts] : [rule];
+  parts.push(`${RECURRENCE_SERIES_KEY}=${finalId}`);
+  return { rule: parts.join(";"), seriesId: finalId };
+}
+
+function isWeeklyRule(rule?: string) {
+  const parsed = parseRecurrenceRule(rule);
+  return parsed?.freq === "WEEKLY";
+}
+
+function extractSeriesId(rule?: string) {
+  return parseRecurrenceRule(rule)?.seriesId;
 }
 
 async function loadUsers() {
@@ -402,30 +447,81 @@ export async function createEvent(input: {
   user_id: string;
   title: string;
   category?: string;
+  location?: string;
   description?: string;
   start_at: string;
   send_realtime: boolean;
   recurrence_rule?: string;
-}): Promise<EventRecord> {
+}): Promise<{ primary: EventRecord; count: number }> {
   const { headers } = await loadEvents();
   const now = nowIso();
-  const record: EventRecord = {
+  const baseRecord: EventRecord = {
     id: crypto.randomUUID(),
     user_id: input.user_id,
     title: input.title,
     category: input.category,
+    location: input.location,
     description: input.description,
     start_at: input.start_at,
     send_realtime: input.send_realtime,
     recurrence_rule: input.recurrence_rule,
     created_at: now,
   };
-  const row = buildRow(headers, {
-    ...record,
-    send_realtime: fromBool(record.send_realtime),
-  } as any);
-  await appendRow(SHEET_EVENTS, row);
-  return record;
+
+  if (!isWeeklyRule(input.recurrence_rule)) {
+    const row = buildRow(headers, {
+      ...baseRecord,
+      send_realtime: fromBool(baseRecord.send_realtime),
+    } as any);
+    await appendRow(SHEET_EVENTS, row);
+    return { primary: baseRecord, count: 1 };
+  }
+
+  const normalized = ensureSeriesId(input.recurrence_rule);
+  const recurringBase = {
+    ...baseRecord,
+    recurrence_rule: normalized.rule,
+  };
+  const startDate = new Date(input.start_at);
+  if (Number.isNaN(startDate.getTime())) {
+    const row = buildRow(headers, {
+      ...recurringBase,
+      send_realtime: fromBool(baseRecord.send_realtime),
+    } as any);
+    await appendRow(SHEET_EVENTS, row);
+    return { primary: recurringBase, count: 1 };
+  }
+
+  const events: EventRecord[] = [];
+  let cursor = new Date(startDate.getTime());
+  while (cursor.getTime() <= RECURRENCE_END_DATE.getTime()) {
+    events.push({
+      ...recurringBase,
+      id: crypto.randomUUID(),
+      start_at: cursor.toISOString(),
+      recurrence_rule: normalized.rule,
+    });
+    cursor = new Date(cursor.getTime() + WEEKLY_INTERVAL_MS);
+  }
+
+  if (events.length === 0) {
+    const row = buildRow(headers, {
+      ...recurringBase,
+      send_realtime: fromBool(baseRecord.send_realtime),
+    } as any);
+    await appendRow(SHEET_EVENTS, row);
+    return { primary: recurringBase, count: 1 };
+  }
+
+  for (const event of events) {
+    const row = buildRow(headers, {
+      ...event,
+      send_realtime: fromBool(event.send_realtime),
+    } as any);
+    await appendRow(SHEET_EVENTS, row);
+  }
+
+  return { primary: events[0] ?? recurringBase, count: events.length || 1 };
 }
 
 export async function getEventById(id: string): Promise<EventRecord | null> {
@@ -438,6 +534,7 @@ export async function updateEvent(
   input: {
     title?: string;
     category?: string;
+    location?: string;
     description?: string;
     start_at?: string;
     send_realtime?: boolean;
@@ -451,6 +548,7 @@ export async function updateEvent(
     ...existing,
     title: input.title ?? existing.title,
     category: input.category ?? existing.category,
+    location: input.location ?? existing.location,
     description: input.description ?? existing.description,
     start_at: input.start_at ?? existing.start_at,
     send_realtime:
@@ -466,6 +564,92 @@ export async function updateEvent(
   } as any);
   await updateRow(SHEET_EVENTS, rowNumber, row);
   return updated;
+}
+
+export async function updateEventsInSeriesFrom(input: {
+  series_id: string;
+  from_start_at: string;
+    updates: {
+      title?: string;
+      category?: string;
+      location?: string;
+      description?: string;
+      start_at?: string;
+      send_realtime?: boolean;
+      recurrence_rule?: string;
+    };
+}): Promise<number> {
+  const { headers, mapped } = await loadEvents();
+  const pivotMs = Date.parse(input.from_start_at);
+  const shiftMs = input.updates.start_at
+    ? Date.parse(input.updates.start_at) - pivotMs
+    : null;
+  const normalizedRule = input.updates.recurrence_rule
+    ? ensureSeriesId(input.updates.recurrence_rule, input.series_id).rule
+    : input.updates.recurrence_rule;
+  const updates: { rowNumber: number; values: string[] }[] = [];
+  let count = 0;
+
+  mapped.forEach((event, idx) => {
+    const seriesId = extractSeriesId(event.recurrence_rule);
+    if (!seriesId || seriesId !== input.series_id) return;
+    const eventMs = Date.parse(event.start_at);
+    if (Number.isNaN(eventMs) || eventMs < pivotMs) return;
+
+    const updated: EventRecord = {
+      ...event,
+      title: input.updates.title ?? event.title,
+      category: input.updates.category ?? event.category,
+      location: input.updates.location ?? event.location,
+      description: input.updates.description ?? event.description,
+      start_at:
+        shiftMs !== null && !Number.isNaN(shiftMs)
+          ? new Date(eventMs + shiftMs).toISOString()
+          : event.start_at,
+      send_realtime:
+        typeof input.updates.send_realtime === "boolean"
+          ? input.updates.send_realtime
+          : event.send_realtime,
+      recurrence_rule:
+        normalizedRule !== undefined ? normalizedRule : event.recurrence_rule,
+    };
+    const row = buildRow(headers, {
+      ...updated,
+      send_realtime: fromBool(updated.send_realtime),
+    } as any);
+    updates.push({ rowNumber: idx + 2, values: row });
+    count += 1;
+  });
+
+  if (updates.length > 0) {
+    await batchUpdateRows(SHEET_EVENTS, updates);
+  }
+  return count;
+}
+
+export async function deleteEventsInSeriesFrom(input: {
+  series_id: string;
+  from_start_at: string;
+}): Promise<number> {
+  const { headers, mapped } = await loadEvents();
+  const pivotMs = Date.parse(input.from_start_at);
+  const updates: { rowNumber: number; values: string[] }[] = [];
+  let count = 0;
+
+  mapped.forEach((event, idx) => {
+    const seriesId = extractSeriesId(event.recurrence_rule);
+    if (!seriesId || seriesId !== input.series_id) return;
+    const eventMs = Date.parse(event.start_at);
+    if (Number.isNaN(eventMs) || eventMs < pivotMs) return;
+    const emptyRow = buildRow(headers, {});
+    updates.push({ rowNumber: idx + 2, values: emptyRow });
+    count += 1;
+  });
+
+  if (updates.length > 0) {
+    await batchUpdateRows(SHEET_EVENTS, updates);
+  }
+  return count;
 }
 
 export async function deleteEvent(id: string): Promise<boolean> {

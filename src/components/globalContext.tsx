@@ -158,6 +158,9 @@ export const useConfirmDialog = () => {
     message: "",
     onConfirm: () => {},
     onCancel: () => {},
+    onConfirmWithCheckbox: undefined as ((checked: boolean) => void) | undefined,
+    checkboxLabel: "",
+    checkboxDefault: false,
     count: 0, // 🆕 添加 count 控制
   });
 
@@ -190,6 +193,41 @@ export const useConfirmDialog = () => {
           }
           decrementCount();
         },
+        onConfirmWithCheckbox: undefined,
+        checkboxLabel: "",
+        checkboxDefault: false,
+        count: newCount,
+      };
+    });
+  };
+
+  const showConfirmWithCheckbox = (
+    title: string,
+    message: string,
+    checkboxLabel: string,
+    onConfirm: (checked: boolean) => void,
+    onCancel?: () => void,
+    checkboxDefault = false
+  ) => {
+    setConfirmField((prev) => {
+      const newCount = prev.count + 1;
+      return {
+        isOpen: newCount > 0,
+        title,
+        message,
+        onConfirm: () => {},
+        onConfirmWithCheckbox: (checked: boolean) => {
+          onConfirm(checked);
+          decrementCount();
+        },
+        onCancel: () => {
+          if (onCancel) {
+            onCancel();
+          }
+          decrementCount();
+        },
+        checkboxLabel,
+        checkboxDefault,
         count: newCount,
       };
     });
@@ -217,7 +255,13 @@ export const useConfirmDialog = () => {
     }));
   };
 
-  return { confirmField, showConfirm, hideConfirm, decrementCount };
+  return {
+    confirmField,
+    showConfirm,
+    showConfirmWithCheckbox,
+    hideConfirm,
+    decrementCount,
+  };
 };
 
 // 確認對話框組件（使用 count 控制顯示）
@@ -233,10 +277,28 @@ export const ConfirmDialog: FC<{
   title: string;
   message: string;
   onConfirm: () => void;
+  onConfirmWithCheckbox?: (checked: boolean) => void;
   onCancel: () => void;
+  checkboxLabel?: string;
+  checkboxDefault?: boolean;
   count?: number; // 🆕 添加 count 屬性用於調試
-}> = ({ isOpen, title, message, onConfirm, onCancel, count }) => {
+}> = ({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onConfirmWithCheckbox,
+  onCancel,
+  checkboxLabel,
+  checkboxDefault,
+  count,
+}) => {
   const isClient = useIsClient();
+  const [checkboxValue, setCheckboxValue] = useState(Boolean(checkboxDefault));
+
+  useEffect(() => {
+    setCheckboxValue(Boolean(checkboxDefault));
+  }, [checkboxDefault, isOpen]);
 
   // console.log("🎭 [ConfirmDialog] Render - isOpen:", isOpen, "count:", count);
 
@@ -250,7 +312,10 @@ export const ConfirmDialog: FC<{
   const handleConfirm = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // console.log("🎭 [ConfirmDialog] Confirm button clicked");
+    if (onConfirmWithCheckbox) {
+      onConfirmWithCheckbox(checkboxValue);
+      return;
+    }
     onConfirm();
   };
 
@@ -294,9 +359,20 @@ export const ConfirmDialog: FC<{
           </h3>
         </div>
         {/* 確認訊息 */}
-        <p className="mb-6 max-w-full break-words overflow-wrap-anywhere whitespace-pre-line text-sm text-[var(--text-secondary)]">
+        <p className="mb-4 max-w-full break-words overflow-wrap-anywhere whitespace-pre-line text-sm text-[var(--text-secondary)]">
           {message}
         </p>
+        {checkboxLabel && (
+          <label className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3 text-sm text-[var(--text-primary)]">
+            <span>{checkboxLabel}</span>
+            <input
+              type="checkbox"
+              checked={checkboxValue}
+              onChange={(event) => setCheckboxValue(event.target.checked)}
+              className="h-5 w-5 accent-[var(--primary)]"
+            />
+          </label>
+        )}
         {/* 操作按鈕組 */}
         <div className="flex gap-3 justify-end">
           {/* 取消按鈕 */}
@@ -360,9 +436,13 @@ export const GlobalProvider: FC<GlobalProviderProps> = ({ children }) => {
           message: "",
           onConfirm: () => {},
           onCancel: () => {},
+          onConfirmWithCheckbox: undefined,
+          checkboxLabel: "",
+          checkboxDefault: false,
           count: 0,
         },
         showConfirm: () => {},
+        showConfirmWithCheckbox: () => {},
         hideConfirm: () => {},
         decrementCount: () => {},
       },
@@ -418,9 +498,13 @@ export const useGlobalContext = (): IGlobalContext => {
           message: "",
           onConfirm: () => {},
           onCancel: () => {},
+          onConfirmWithCheckbox: undefined,
+          checkboxLabel: "",
+          checkboxDefault: false,
           count: 0,
         },
         showConfirm: () => {},
+        showConfirmWithCheckbox: () => {},
         hideConfirm: () => {},
         decrementCount: () => {},
       },

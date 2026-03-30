@@ -13,6 +13,7 @@ export async function POST(request: Request) {
         user_id?: string;
         title?: string;
         category?: string;
+        location?: string;
         description?: string;
         start_at?: string;
         send_realtime?: boolean;
@@ -49,11 +50,16 @@ export async function POST(request: Request) {
     const descError = requireLength(body.description, 1000, "description");
     if (descError) return descError;
   }
+  if (body?.location) {
+    const locationError = requireLength(body.location, 200, "location");
+    if (locationError) return locationError;
+  }
 
-  const record = await createEvent({
+  const result = await createEvent({
     user_id: body.user_id,
     title: body.title,
     category: body.category,
+    location: body.location,
     description: body.description,
     start_at: body.start_at,
     send_realtime: Boolean(body.send_realtime),
@@ -61,12 +67,12 @@ export async function POST(request: Request) {
   });
 
   let realtimeResult: unknown = null;
-  if (record.send_realtime) {
-    realtimeResult = await sendRealtimeForEvent(record.id);
+  if (result.primary.send_realtime) {
+    realtimeResult = await sendRealtimeForEvent(result.primary.id);
   }
 
   return Response.json(
-    { id: record.id, realtime: realtimeResult },
+    { id: result.primary.id, count: result.count, realtime: realtimeResult },
     { status: 201 }
   );
 }

@@ -32,7 +32,7 @@ export default function MainPage() {
   const [hidePast, setHidePast] = useState(true);
   const [rangeFilter, setRangeFilter] = useState<"all" | "3d" | "7d">("7d");
   const [onlyMine, setOnlyMine] = useState(false);
-  const range = useMemo(() => {
+  const listRange = useMemo(() => {
     const now = new Date();
     const from = hidePast ? now.toISOString() : new Date(0).toISOString();
     let to = new Date(Date.now() + 1000 * 365 * 24 * 60 * 60 * 1000).toISOString();
@@ -43,10 +43,17 @@ export default function MainPage() {
     }
     return { from, to };
   }, [hidePast, rangeFilter]);
-  const eventsQuery = useEvents(range);
-  const createEvent = useCreateEvent(range);
-  const updateEvent = useUpdateEvent(range);
-  const deleteEvent = useDeleteEvent(range);
+  const calendarRange = useMemo(() => {
+    return {
+      from: new Date(0).toISOString(),
+      to: new Date(Date.now() + 1000 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+  }, []);
+  const eventsQuery = useEvents(listRange);
+  const calendarEventsQuery = useEvents(calendarRange);
+  const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
+  const deleteEvent = useDeleteEvent();
   const { token, verified, reset } = useTurnstileContext();
   const { SystemToast, SystemLoading, SystemConfirm } = useGlobalContext();
   const [eventModalOpen, setEventModalOpen] = useState(false);
@@ -319,6 +326,7 @@ export default function MainPage() {
                     userId &&
                     (event.user_id === userId || profileQuery.data?.is_admin);
                   const when = new Date(event.start_at);
+                  const isRecurring = Boolean(event.recurrence_rule);
                   const timeLabel = Number.isNaN(when.getTime())
                     ? event.start_at
                     : when.toLocaleString();
@@ -341,6 +349,11 @@ export default function MainPage() {
                           {event.category}
                         </p>
                       )}
+                      {event.location && (
+                        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                          {event.location}
+                        </p>
+                      )}
                       <p className="mt-1 text-xs text-[var(--text-muted)]">
                         Inviter: {event.owner_name || "Unknown"}
                       </p>
@@ -359,37 +372,49 @@ export default function MainPage() {
                                   );
                                   return;
                                 }
-                                SystemConfirm.showConfirm(
-                                  "Delete event",
-                                  "This action cannot be undone.",
-                              async () => {
-                                SystemLoading.loadingStart({
-                                  loadingText: "Deleting event...",
-                                });
-                                try {
-                                  await deleteEvent.mutateAsync({
-                                    id: event.id,
-                                    user_id: userId,
-                                    turnstile_token: token,
+                                const performDelete = async (applyToRest: boolean) => {
+                                  SystemLoading.loadingStart({
+                                    loadingText: "Deleting event...",
                                   });
-                                  SystemToast.showToast(
-                                    "Event deleted.",
-                                    "success",
+                                  try {
+                                    await deleteEvent.mutateAsync({
+                                      id: event.id,
+                                      user_id: userId,
+                                      series_action: applyToRest ? "rest" : "single",
+                                      turnstile_token: token,
+                                    });
+                                    SystemToast.showToast(
+                                      "Event deleted.",
+                                      "success",
+                                    );
+                                  } catch (error) {
+                                    SystemToast.showToast(
+                                      error instanceof Error
+                                        ? error.message
+                                        : "Failed to delete event.",
+                                      "error",
+                                    );
+                                  } finally {
+                                    SystemLoading.loadingEnd();
+                                    reset();
+                                  }
+                                };
+
+                                if (isRecurring) {
+                                  SystemConfirm.showConfirmWithCheckbox(
+                                    "Delete event",
+                                    "This action cannot be undone.",
+                                    "Delete the rest of this series",
+                                    performDelete,
                                   );
-                                } catch (error) {
-                                  SystemToast.showToast(
-                                    error instanceof Error
-                                      ? error.message
-                                      : "Failed to delete event.",
-                                    "error",
+                                } else {
+                                  SystemConfirm.showConfirm(
+                                    "Delete event",
+                                    "This action cannot be undone.",
+                                    () => performDelete(false)
                                   );
-                                } finally {
-                                  SystemLoading.loadingEnd();
-                                  reset();
                                 }
-                              }
-                            );
-                          }}
+                              }}
                               className="rounded-full border border-[color-mix(in oklab, var(--danger) 40%, var(--border))] bg-[color-mix(in oklab, var(--danger) 16%, var(--surface-2))] px-3 py-1 text-xs text-[var(--danger)]"
                             >
                               Delete
@@ -405,7 +430,7 @@ export default function MainPage() {
         )}
         {activeTab === "calendar" && (
           <CalendarView
-            events={eventsQuery.data ?? []}
+            events={calendarEventsQuery.data ?? []}
             onSelectEvent={(event) => setEditingEvent(event)}
           />
         )}
@@ -444,6 +469,7 @@ export default function MainPage() {
         onClose={() => setEventModalOpen(false)}
       >
         <EventCard
+          key="create"
           mode="create"
           saving={createEvent.isPending}
           onSave={async (values: EventCardValues) => {
@@ -475,6 +501,7 @@ export default function MainPage() {
                 user_id: userId,
                 title: values.title,
                 category: values.category || undefined,
+                location: values.location || undefined,
                 description: values.description || undefined,
                 start_at: startIso,
                 send_realtime: values.sendRealtime,
@@ -511,6 +538,7 @@ export default function MainPage() {
               Boolean(profileQuery.data?.is_admin));
           return (
             <EventCard
+              key={editingEvent.id}
               mode="edit"
               readOnly={!canEdit}
               initial={editingEvent}
@@ -548,10 +576,12 @@ export default function MainPage() {
                     user_id: userId,
                     title: values.title,
                     category: values.category || undefined,
+                    location: values.location || undefined,
                     description: values.description || undefined,
                     start_at: startIso,
                     send_realtime: values.sendRealtime,
                     recurrence_rule: recurrenceRule,
+                    series_action: values.updateRest ? "rest" : "single",
                     turnstile_token: token,
                   });
                   setEditingEvent(null);
@@ -572,6 +602,7 @@ export default function MainPage() {
           );
         })()}
       </ModalShell>
+
 
       <NotificationGuideModal
         open={showNotificationGuide}

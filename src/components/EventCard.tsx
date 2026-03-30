@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Repeat2, Text, ToggleLeft } from "lucide-react";
+import { CalendarDays, CalendarPlus, Repeat2, Share2, Text, ToggleLeft } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 export type EventCardValues = {
   title: string;
   category: string;
+  location: string;
   description: string;
   startAt: string;
   sendRealtime: boolean;
   isWeekly: boolean;
+  updateRest?: boolean;
 };
 
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -58,6 +60,7 @@ type EventCardProps = {
     id?: string;
     title?: string;
     category?: string;
+    location?: string;
     description?: string;
     start_at?: string;
     send_realtime?: boolean;
@@ -114,6 +117,15 @@ export default function EventCard({
   const [timeHour, setTimeHour] = useState(initialTime.hour);
   const [timeMinute, setTimeMinute] = useState(initialTime.minute);
   const [timeMeridiem, setTimeMeridiem] = useState(initialTime.meridiem);
+  const [updateRest, setUpdateRest] = useState(false);
+  const [sendRealtime, setSendRealtime] = useState(
+    Boolean(initial?.send_realtime) && mode === "create"
+  );
+  const [isWeekly, setIsWeekly] = useState(Boolean(initial?.recurrence_rule));
+  const shareUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return window.location.href;
+  }, []);
 
   const displayDate = useMemo(() => {
     if (!selectedDate) return "dd/mm/yyyy";
@@ -126,6 +138,63 @@ export default function EventCard({
         : "--:--";
     return `${dd}/${mm}/${yyyy}, ${timeLabel}`;
   }, [selectedDate, timeHour, timeMinute, timeMeridiem]);
+
+  const shareText = useMemo(() => {
+    if (mode !== "edit") return "";
+    const title = (initial?.title || "").trim();
+    const location = (initial?.location || "").trim();
+    const description = (initial?.description || "").trim();
+    const trimmedDescription =
+      description.length > 220 ? `${description.slice(0, 217)}...` : description;
+    const titleText = title || "join an event";
+    const timeText = displayDate || "";
+    const locationText = location || "";
+    const line1Parts = [
+      "Hey! I'd like to",
+      titleText ? titleText : "",
+      timeText ? `at ${timeText}` : "",
+      locationText ? `at ${locationText}` : "",
+    ].filter(Boolean);
+    const lines = [
+      `${line1Parts.join(" ")}`.replace(/\s+/g, " ").trim() + ".",
+      trimmedDescription ? `Details: ${trimmedDescription}` : "",
+      "Feel free to let me know if you want to join.",
+      "",
+    ];
+    return lines.filter(Boolean).join("\n");
+  }, [displayDate, initial, mode]);
+
+  const googleCalendarHref = useMemo(() => {
+    if (mode !== "edit") return "";
+    const title = (initial?.title || "").trim();
+    const location = (initial?.location || "").trim();
+    const description = (initial?.description || "").trim();
+    const startAt = initial?.start_at ? new Date(initial.start_at) : null;
+    if (!startAt || Number.isNaN(startAt.getTime())) return "";
+    const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
+    const toGcalDate = (date: Date) => {
+      const pad2 = (v: number) => String(v).padStart(2, "0");
+      return `${date.getUTCFullYear()}${pad2(date.getUTCMonth() + 1)}${pad2(
+        date.getUTCDate(),
+      )}T${pad2(date.getUTCHours())}${pad2(date.getUTCMinutes())}${pad2(
+        date.getUTCSeconds(),
+      )}Z`;
+    };
+    const params = new URLSearchParams({
+      action: "TEMPLATE",
+      text: title || "Event",
+      dates: `${toGcalDate(startAt)}/${toGcalDate(endAt)}`,
+    });
+    if (location) params.set("location", location);
+    if (description) params.set("details", description);
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }, [initial, mode]);
+
+  const whatsappShareHref = useMemo(() => {
+    if (!shareUrl) return "";
+    const payload = [shareText, shareUrl].filter(Boolean).join("\n");
+    return `https://wa.me/?text=${encodeURIComponent(payload)}`;
+  }, [shareText, shareUrl]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,10 +216,12 @@ export default function EventCard({
     const values: EventCardValues = {
       title: String(formData.get("title") || "").trim(),
       category: String(formData.get("category") || "").trim(),
+      location: String(formData.get("location") || "").trim(),
       description: String(formData.get("description") || "").trim(),
       startAt,
-      sendRealtime: formData.get("send_realtime") === "on",
-      isWeekly: formData.get("is_weekly") === "on",
+      sendRealtime,
+      isWeekly,
+      updateRest: formData.get("update_rest") === "on",
     };
     onSave(values, initial?.id);
   };
@@ -172,6 +243,37 @@ export default function EventCard({
           )}
         </div>
       </header>
+      {mode === "edit" && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Share
+          </span>
+          <a
+            href={whatsappShareHref || "#"}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(event) => {
+              if (!whatsappShareHref) event.preventDefault();
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--primary)]"
+          >
+            <Share2 size={14} className="text-[var(--text-muted)]" />
+            WhatsApp
+          </a>
+          <a
+            href={googleCalendarHref || "#"}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(event) => {
+              if (!googleCalendarHref) event.preventDefault();
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--primary)]"
+          >
+            <CalendarPlus size={14} className="text-[var(--text-muted)]" />
+            Add to Google Calendar
+          </a>
+        </div>
+      )}
 
       <div className="mt-4 space-y-3">
         <label className="block text-sm">
@@ -207,6 +309,17 @@ export default function EventCard({
               <option value="Drink together">Drink together</option>
             </select>
           </div>
+        </label>
+
+        <label className="block text-sm">
+          Location
+          <input
+            name="location"
+            defaultValue={initial?.location || ""}
+            placeholder="Where is it?"
+            disabled={readOnly}
+            className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+          />
         </label>
 
         <label className="block text-sm">
@@ -326,8 +439,13 @@ export default function EventCard({
             <input
               type="checkbox"
               name="send_realtime"
-              defaultChecked={Boolean(initial?.send_realtime)}
+              checked={sendRealtime}
               disabled={readOnly}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setSendRealtime(checked);
+                if (checked) setIsWeekly(false);
+              }}
               className="h-5 w-5 accent-[var(--primary)]"
             />
           </label>
@@ -341,16 +459,39 @@ export default function EventCard({
             </span>
           </span>
           <span className="inline-flex items-center gap-2 text-xs text-[var(--text-muted)]">
-            <Repeat2 size={16} className="text-[var(--text-muted)]" />
             <input
               type="checkbox"
               name="is_weekly"
-              defaultChecked={Boolean(initial?.recurrence_rule)}
-              disabled={readOnly}
+              checked={isWeekly}
+              disabled={readOnly || mode === "edit"}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setIsWeekly(checked);
+                if (checked) setSendRealtime(false);
+              }}
               className="h-5 w-5 accent-[var(--primary)]"
             />
           </span>
         </label>
+
+        {mode === "edit" && Boolean(initial?.recurrence_rule) && (
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+            <span>
+              <span className="text-sm font-medium">Update the rest</span>
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                Apply changes to this and all future weekly events.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              name="update_rest"
+              checked={updateRest}
+              disabled={readOnly}
+              onChange={(event) => setUpdateRest(event.target.checked)}
+              className="h-5 w-5 accent-[var(--primary)]"
+            />
+          </label>
+        )}
       </div>
 
       {!readOnly && (

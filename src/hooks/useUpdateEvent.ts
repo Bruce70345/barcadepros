@@ -1,23 +1,24 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { eventsQueryKey } from "@/hooks/useEvents";
 
 type UpdateEventInput = {
   id: string;
   user_id: string;
   title?: string;
   category?: string;
+  location?: string;
   description?: string;
   start_at?: string;
   send_realtime?: boolean;
   recurrence_rule?: string;
+  series_action?: "single" | "rest";
   turnstile_token: string;
 };
 
 type UpdateEventResponse = { ok: true };
 
-export function useUpdateEvent(range: { from: string; to: string }) {
+export function useUpdateEvent() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: UpdateEventInput): Promise<UpdateEventResponse> => {
@@ -28,10 +29,12 @@ export function useUpdateEvent(range: { from: string; to: string }) {
           user_id: payload.user_id,
           title: payload.title,
           category: payload.category,
+          location: payload.location,
           description: payload.description,
           start_at: payload.start_at,
           send_realtime: payload.send_realtime,
           recurrence_rule: payload.recurrence_rule,
+          series_action: payload.series_action,
           turnstile_token: payload.turnstile_token,
         }),
       });
@@ -42,7 +45,7 @@ export function useUpdateEvent(range: { from: string; to: string }) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: eventsQueryKey(range) });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
   });
 }
