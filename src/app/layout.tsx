@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import AppBar from "@/components/AppBar";
+import FloatingActionBar from "@/components/FloatingActionBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col custom-scrollbar">
         <AppBar />
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <FloatingActionBar />
+        </Providers>
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js"
           async

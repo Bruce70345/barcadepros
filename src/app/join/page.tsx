@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import TurnstileWidget from "@/components/TurnstileWidget";
 import { useJoinUser } from "@/hooks/useJoinUser";
-import { useTurnstile } from "@/hooks/useTurnstile";
+import { useTurnstileContext } from "@/components/turnstileContext";
 import { useGlobalContext } from "@/components/globalContext";
 
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
@@ -13,8 +13,7 @@ export default function JoinPage() {
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const joinUser = useJoinUser();
-  const { token, verified, error, handleVerify, handleError, handleExpire } =
-    useTurnstile();
+  const { token, verified, error } = useTurnstileContext();
   const { SystemToast, SystemLoading } = useGlobalContext();
 
   useEffect(() => {
@@ -77,10 +76,20 @@ export default function JoinPage() {
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <div className="mx-auto w-full max-w-md px-5 py-10">
         <h1 className="text-2xl font-semibold">Join Barcade Pros</h1>
+        <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)]">
+          <Image
+            src="/joinPic.jpeg"
+            alt="Join Barcade Pros"
+            width={960}
+            height={640}
+            className="h-auto w-full object-cover"
+            sizes="(max-width: 768px) 100vw, 448px"
+            priority
+          />
+        </div>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
           Enter your display name to get started.
         </p>
-
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
           <label className="block text-sm">
             Display name
@@ -100,13 +109,6 @@ export default function JoinPage() {
               className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
             />
           </label>
-
-          <TurnstileWidget
-            className="pt-1"
-            onVerify={handleVerify}
-            onError={handleError}
-            onExpire={handleExpire}
-          />
 
           <button
             type="submit"

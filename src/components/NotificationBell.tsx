@@ -29,7 +29,7 @@ export default function NotificationBell() {
       onClick={handleClick}
       size="medium"
       aria-label={enabled ? "Notifications enabled" : "Enable notifications"}
-      className="!rounded-full !h-8 !w-8"
+      className="!rounded-full !h-11 !w-11"
       sx={{
         bgcolor:
           !enabled || blocked

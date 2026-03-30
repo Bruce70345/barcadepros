@@ -481,12 +481,20 @@ export async function deleteEvent(id: string): Promise<boolean> {
 export async function listEventsInRange(input: {
   from?: string;
   to?: string;
-}): Promise<EventRecord[]> {
-  const { mapped } = await loadEvents();
-  if (!input.from && !input.to) return mapped;
+}): Promise<(EventRecord & { owner_name?: string })[]> {
+  const [{ mapped: events }, { mapped: users }] = await Promise.all([
+    loadEvents(),
+    loadUsers(),
+  ]);
+  const userMap = new Map(users.map((u) => [u.id, u.name]));
+  const withOwner = events.map((e) => ({
+    ...e,
+    owner_name: userMap.get(e.user_id),
+  }));
+  if (!input.from && !input.to) return withOwner;
   const fromMs = input.from ? Date.parse(input.from) : -Infinity;
   const toMs = input.to ? Date.parse(input.to) : Infinity;
-  return mapped.filter((e) => {
+  return withOwner.filter((e) => {
     const t = Date.parse(e.start_at);
     return t >= fromMs && t <= toMs;
   });

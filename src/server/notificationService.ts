@@ -41,7 +41,7 @@ export async function sendRealtimeForEvent(eventId: string) {
   // if (isQuietHoursTaipei(now)) {
   //   await createNotification({
   //     type: "realtime",
-  //     title: "New event",
+  //     title: invitationBody,
   //     body: event.title,
   //     send_at: now.toISOString(),
   //     status: "skipped",
@@ -72,7 +72,7 @@ export async function sendRealtimeForEvent(eventId: string) {
       const result = await messaging.sendEachForMulticast({
         tokens: batch,
         notification: {
-          title: "New event",
+          title: invitationBody,
           body: invitationBody,
         },
         data: {
@@ -86,8 +86,8 @@ export async function sendRealtimeForEvent(eventId: string) {
 
     await createNotification({
       type: "realtime",
-      title: "New event",
-      body: invitationBody,
+      title: invitationBody,
+      body: event.title,
       send_at: now.toISOString(),
       status: failureCount > 0 ? "failed" : "sent",
     });
@@ -101,8 +101,8 @@ export async function sendRealtimeForEvent(eventId: string) {
   } catch (error: any) {
     await createNotification({
       type: "realtime",
-      title: "New event",
-      body: invitationBody,
+      title: invitationBody,
+      body: event.title,
       send_at: now.toISOString(),
       status: "failed",
     });

@@ -53,6 +53,7 @@ const getRoundedDefaultDate = () => {
 
 type EventCardProps = {
   mode: "create" | "edit";
+  readOnly?: boolean;
   initial?: {
     id?: string;
     title?: string;
@@ -60,13 +61,20 @@ type EventCardProps = {
     description?: string;
     start_at?: string;
     send_realtime?: boolean;
-      recurrence_rule?: string;
+    recurrence_rule?: string;
+    owner_name?: string;
   };
   onSave: (values: EventCardValues, id?: string) => void | Promise<void>;
   saving?: boolean;
 };
 
-export default function EventCard({ mode, initial, onSave, saving }: EventCardProps) {
+export default function EventCard({
+  mode,
+  readOnly = false,
+  initial,
+  onSave,
+  saving,
+}: EventCardProps) {
   const defaultDate =
     mode === "create" && !initial?.start_at ? getRoundedDefaultDate() : undefined;
 
@@ -121,6 +129,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (readOnly) return;
     const form = event.currentTarget;
     const formData = new FormData(form);
     const startDate = String(formData.get("start_date") || "").trim();
@@ -156,11 +165,11 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
           <h3 className="text-sm font-semibold">
             {mode === "create" ? "New event" : "Event"}
           </h3>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            {mode === "create"
-              ? ""
-              : ""}
-          </p>
+          {mode !== "create" && (
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Inviter: {initial?.owner_name || "Unknown"}
+            </p>
+          )}
         </div>
       </header>
 
@@ -171,6 +180,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
             name="title"
             defaultValue={initial?.title || ""}
             placeholder="Event title"
+            disabled={readOnly}
             className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
           />
         </label>
@@ -182,6 +192,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
             <select
               name="category"
               defaultValue={initial?.category || (mode === "create" ? "Meal together" : "")}
+              disabled={readOnly}
               className="w-full bg-transparent text-sm text-[var(--text-primary)] outline-none"
             >
               <option value="" disabled>
@@ -206,6 +217,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={readOnly}
                   className="w-full justify-start gap-2 bg-[var(--surface-2)] text-[var(--text-primary)]"
                 >
                   <CalendarDays size={16} className="text-[var(--text-muted)]" />
@@ -219,7 +231,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={readOnly ? undefined : setSelectedDate}
                   initialFocus
                 />
                   <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-primary)]">
@@ -227,6 +239,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
                     <select
                       name="time_hour"
                       value={timeHour}
+                      disabled={readOnly}
                       onChange={(event) => setTimeHour(event.target.value)}
                       className="flex-1 bg-transparent text-sm text-[var(--text-primary)] outline-none"
                     >
@@ -249,6 +262,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
                     <select
                       name="time_minute"
                       value={timeMinute}
+                      disabled={readOnly}
                       onChange={(event) => setTimeMinute(event.target.value)}
                       className="flex-1 bg-transparent text-sm text-[var(--text-primary)] outline-none"
                     >
@@ -265,6 +279,7 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
                     <select
                       name="time_meridiem"
                       value={timeMeridiem}
+                      disabled={readOnly}
                       onChange={(event) => setTimeMeridiem(event.target.value)}
                       className="flex-1 bg-transparent text-sm text-[var(--text-primary)] outline-none"
                     >
@@ -294,25 +309,29 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
               rows={6}
               defaultValue={initial?.description || ""}
               placeholder="Add details, meetup point, or notes."
+              disabled={readOnly}
               className="custom-scrollbar w-full resize-none bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
             />
           </div>
         </label>
 
-        <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
-          <span>
-            <span className="text-sm font-medium">Realtime notification</span>
-            <span className="mt-1 block text-xs text-[var(--text-muted)]">
-              Send notification immediately after creation.
+        {mode === "create" && (
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+            <span>
+              <span className="text-sm font-medium">Realtime notification</span>
+              <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                Send notification immediately after creation.
+              </span>
             </span>
-          </span>
-          <input
-            type="checkbox"
-            name="send_realtime"
-            defaultChecked={Boolean(initial?.send_realtime)}
-            className="h-5 w-5 accent-[var(--primary)]"
-          />
-        </label>
+            <input
+              type="checkbox"
+              name="send_realtime"
+              defaultChecked={Boolean(initial?.send_realtime)}
+              disabled={readOnly}
+              className="h-5 w-5 accent-[var(--primary)]"
+            />
+          </label>
+        )}
 
         <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
           <span>
@@ -327,20 +346,23 @@ export default function EventCard({ mode, initial, onSave, saving }: EventCardPr
               type="checkbox"
               name="is_weekly"
               defaultChecked={Boolean(initial?.recurrence_rule)}
+              disabled={readOnly}
               className="h-5 w-5 accent-[var(--primary)]"
             />
           </span>
         </label>
       </div>
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--background)] disabled:opacity-60"
-      >
-        <ToggleLeft size={16} />
-        {saving ? "Saving..." : mode === "create" ? "Add event" : "Save changes"}
-      </button>
+      {!readOnly && (
+        <button
+          type="submit"
+          disabled={saving}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--background)] disabled:opacity-60"
+        >
+          <ToggleLeft size={16} />
+          {saving ? "Saving..." : mode === "create" ? "Add event" : "Save changes"}
+        </button>
+      )}
     </form>
   );
 }

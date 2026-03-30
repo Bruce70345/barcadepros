@@ -3,24 +3,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useInitFcm } from "@/hooks/useInitFcm";
-import { Calendar, ChevronDown, Music, Plus } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import EventCard, { EventCardValues } from "@/components/EventCard";
 import { useEvents, type EventRecord } from "@/hooks/useEvents";
 import { useCreateEvent } from "@/hooks/useCreateEvent";
 import { useUpdateEvent } from "@/hooks/useUpdateEvent";
 import { useDeleteEvent } from "@/hooks/useDeleteEvent";
-import TurnstileWidget from "@/components/TurnstileWidget";
-import { useTurnstile } from "@/hooks/useTurnstile";
+import { useTurnstileContext } from "@/components/turnstileContext";
 import { useGlobalContext } from "@/components/globalContext";
 import ModalShell from "@/components/ModalShell";
 import { useIsHydrated } from "@/hooks/useIsHydrated";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import NotificationGuideModal from "@/components/NotificationGuideModal";
+import {
+  OPEN_EVENT_MODAL_EVENT,
+  SHOW_CALENDAR_VIEW_EVENT,
+  SHOW_LIST_VIEW_EVENT,
+} from "@/lib/uiEvents";
 
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function MainPage() {
   const router = useRouter();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [userId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem("userId");
@@ -43,11 +46,11 @@ export default function MainPage() {
   const createEvent = useCreateEvent(range);
   const updateEvent = useUpdateEvent(range);
   const deleteEvent = useDeleteEvent(range);
-  const { token, verified, handleVerify, handleError, handleExpire } =
-    useTurnstile();
+  const { token, verified } = useTurnstileContext();
   const { SystemToast, SystemLoading, SystemConfirm } = useGlobalContext();
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventRecord | null>(null);
+  const [activeTab, setActiveTab] = useState<"list" | "calendar">("list");
   const prevFetching = useRef<boolean | null>(null);
   const hydrated = useIsHydrated();
   const profileQuery = useUserProfile(userId);
@@ -67,6 +70,24 @@ export default function MainPage() {
       router.replace("/join");
     }
   }, [router, userId]);
+
+  useEffect(() => {
+    const handler = () => setEventModalOpen(true);
+    window.addEventListener(OPEN_EVENT_MODAL_EVENT, handler);
+    return () => window.removeEventListener(OPEN_EVENT_MODAL_EVENT, handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setActiveTab("list");
+    window.addEventListener(SHOW_LIST_VIEW_EVENT, handler);
+    return () => window.removeEventListener(SHOW_LIST_VIEW_EVENT, handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setActiveTab("calendar");
+    window.addEventListener(SHOW_CALENDAR_VIEW_EVENT, handler);
+    return () => window.removeEventListener(SHOW_CALENDAR_VIEW_EVENT, handler);
+  }, []);
 
   useInitFcm(true);
 
@@ -209,172 +230,182 @@ export default function MainPage() {
           </div>
         )}
 
-        <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
-          <summary className="grid cursor-pointer list-none grid-cols-[1fr_auto_auto] items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
-            <span>
-              Hide past events
-              <span className="ml-2 text-xs text-[var(--text-muted)]">
-                before now
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={hidePast}
-              onChange={(event) => setHidePast(event.target.checked)}
-              onClick={(event) => event.stopPropagation()}
-              className="h-5 w-5 accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-            />
-            <ChevronDown className="h-4 w-4 text-[var(--text-muted)] transition-transform group-open:rotate-180" />
-          </summary>
-          <div className="mt-4 space-y-4 border-t border-[var(--border)] pt-4">
-            <div className="space-y-2">
-              <div className="text-xs text-[var(--text-muted)]">
-                Range (optional, choose one)
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: "7d", label: "Next 7 days" },
-                  { id: "3d", label: "Next 3 days" },
-                  { id: "all", label: "All events" },
-                ].map((option) => {
-                  const active = rangeFilter === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setRangeFilter(option.id as "all" | "3d" | "7d")}
-                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                        active
-                          ? "border-[var(--primary)] bg-[color-mix(in oklab, var(--primary) 18%, var(--surface-2))] text-[var(--text-primary)]"
-                          : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <label className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
-              <span className="text-sm">
-                Only my events
-                <span className="ml-2 text-xs text-[var(--text-muted)]">
-                  created by you
+        {activeTab === "list" && (
+          <>
+            <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
+              <summary className="grid cursor-pointer list-none grid-cols-[1fr_auto_auto] items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
+                <span>
+                  Hide past events
+                  <span className="ml-2 text-xs text-[var(--text-muted)]">
+                    before now
+                  </span>
                 </span>
-              </span>
-              <input
-                type="checkbox"
-                checked={onlyMine}
-                onChange={(event) => setOnlyMine(event.target.checked)}
-                className="h-5 w-5 accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-              />
-              <span className="h-4 w-4" aria-hidden="true" />
-            </label>
-          </div>
-        </details>
+                <input
+                  type="checkbox"
+                  checked={hidePast}
+                  onChange={(event) => setHidePast(event.target.checked)}
+                  onClick={(event) => event.stopPropagation()}
+                  className="h-5 w-5 accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+                />
+                <ChevronDown className="h-4 w-4 text-[var(--text-muted)] transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="mt-4 space-y-4 border-t border-[var(--border)] pt-4">
+                <div className="space-y-2">
+                  <div className="text-xs text-[var(--text-muted)]">
+                    Range (optional, choose one)
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: "7d", label: "Next 7 days" },
+                      { id: "3d", label: "Next 3 days" },
+                      { id: "all", label: "All events" },
+                    ].map((option) => {
+                      const active = rangeFilter === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() =>
+                            setRangeFilter(option.id as "all" | "3d" | "7d")
+                          }
+                          className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                            active
+                              ? "border-[var(--primary)] bg-[color-mix(in oklab, var(--primary) 18%, var(--surface-2))] text-[var(--text-primary)]"
+                              : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-        <div className="panel-with-scrollbar mt-6 max-h-[60vh] space-y-3 overflow-y-visible">
-          {hydrated && eventsQuery.data?.length === 0 && (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
-              No events match these filters.
-            </div>
-          )}
-          {hydrated &&
-            eventsQuery.data
-              ?.filter((event) => {
-                if (onlyMine && userId && event.user_id !== userId) {
-                  return false;
-                }
-                return true;
-              })
-              .map((event) => {
-              const canManage =
-                userId && (event.user_id === userId || profileQuery.data?.is_admin);
-              const when = new Date(event.start_at);
-              const timeLabel = Number.isNaN(when.getTime())
-                ? event.start_at
-                : when.toLocaleString();
-              return (
+                <label className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+                  <span className="text-sm">
+                    Only my events
+                    <span className="ml-2 text-xs text-[var(--text-muted)]">
+                      created by you
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={onlyMine}
+                    onChange={(event) => setOnlyMine(event.target.checked)}
+                    className="h-5 w-5 accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+                  />
+                  <span className="h-4 w-4" aria-hidden="true" />
+                </label>
+              </div>
+            </details>
+
+            <div className="panel-with-scrollbar mt-6 max-h-[60vh] space-y-3 overflow-y-visible">
+              {hydrated && eventsQuery.data?.length === 0 && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
+                  No events match these filters.
+                </div>
+              )}
+              {hydrated &&
+                eventsQuery.data
+                  ?.filter((event) => {
+                    if (onlyMine && userId && event.user_id !== userId) {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((event) => {
+                  const canManage =
+                    userId &&
+                    (event.user_id === userId || profileQuery.data?.is_admin);
+                  const when = new Date(event.start_at);
+                  const timeLabel = Number.isNaN(when.getTime())
+                    ? event.start_at
+                    : when.toLocaleString();
+                  return (
                 <div
                   key={event.id}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+                  className="cursor-pointer rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+                  onClick={() => setEditingEvent(event)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                         {event.title}
                       </h3>
-                      <p className="mt-1 text-xs text-[var(--text-muted)]">
-                        {timeLabel}
-                      </p>
+                          <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            {timeLabel}
+                          </p>
                       {event.category && (
                         <p className="mt-1 text-xs text-[var(--text-secondary)]">
                           {event.category}
                         </p>
                       )}
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
+                        Inviter: {event.owner_name || "Unknown"}
+                      </p>
                     </div>
-                    {canManage && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditingEvent(event)}
-                          className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs text-[var(--text-primary)]"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!userId) return;
-                            if (!verified || !token) {
-                              SystemToast.showToast(
-                                "Verification required before deleting.",
-                                "warning",
-                              );
-                              return;
-                            }
-                            SystemConfirm.showConfirm(
-                              "Delete event",
-                              "This action cannot be undone.",
-                              async () => {
-                                SystemLoading.loadingStart({
-                                  loadingText: "Deleting event...",
-                                });
-                                try {
-                                  await deleteEvent.mutateAsync({
-                                    id: event.id,
-                                    user_id: userId,
-                                    turnstile_token: token,
-                                  });
+                        {canManage && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!userId) return;
+                                if (!verified || !token) {
                                   SystemToast.showToast(
-                                    "Event deleted.",
-                                    "success",
+                                    "Verification required before deleting.",
+                                    "warning",
                                   );
-                                } catch (error) {
-                                  SystemToast.showToast(
-                                    error instanceof Error
-                                      ? error.message
-                                      : "Failed to delete event.",
-                                    "error",
-                                  );
-                                } finally {
-                                  SystemLoading.loadingEnd();
+                                  return;
                                 }
-                              }
-                            );
-                          }}
-                          className="rounded-full border border-[color-mix(in oklab, var(--danger) 40%, var(--border))] bg-[color-mix(in oklab, var(--danger) 16%, var(--surface-2))] px-3 py-1 text-xs text-[var(--danger)]"
-                        >
-                          Delete
-                        </button>
+                                SystemConfirm.showConfirm(
+                                  "Delete event",
+                                  "This action cannot be undone.",
+                                  async () => {
+                                    SystemLoading.loadingStart({
+                                      loadingText: "Deleting event...",
+                                    });
+                                    try {
+                                      await deleteEvent.mutateAsync({
+                                        id: event.id,
+                                        user_id: userId,
+                                        turnstile_token: token,
+                                      });
+                                      SystemToast.showToast(
+                                        "Event deleted.",
+                                        "success",
+                                      );
+                                    } catch (error) {
+                                      SystemToast.showToast(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Failed to delete event.",
+                                        "error",
+                                      );
+                                    } finally {
+                                      SystemLoading.loadingEnd();
+                                    }
+                                  }
+                                );
+                              }}
+                              className="rounded-full border border-[color-mix(in oklab, var(--danger) 40%, var(--border))] bg-[color-mix(in oklab, var(--danger) 16%, var(--surface-2))] px-3 py-1 text-xs text-[var(--danger)]"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-        </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </>
+        )}
+        {activeTab === "calendar" && (
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-sm text-[var(--text-muted)]">
+            Calendar view coming soon.
+          </div>
+        )}
 
         {/* Tabs (SPA)
             tab1: Calendar view (monthly) + List view (day)
@@ -401,50 +432,6 @@ export default function MainPage() {
             - Create + Update in one modal
             - fields: title, date/time, category, description, realtime toggle, recurrence
         */}
-      </div>
-
-      <div className="fixed inset-x-0 bottom-6 mx-auto w-full max-w-md px-5">
-        <div className="rounded-full border border-[var(--border)] bg-[color-mix(in oklab, var(--surface) 88%, transparent)] px-3 py-2 shadow-lg shadow-[color-mix(in oklab, var(--background) 60%, transparent)] backdrop-blur">
-          <div className="flex items-center justify-between">
-            <TurnstileWidget
-              className="hidden"
-              onVerify={handleVerify}
-              onError={handleError}
-              onExpire={handleExpire}
-            />
-            <audio ref={audioRef} src="/ringTone.mp3" preload="none" />
-            {/* <button
-              type="button"
-              aria-label="Open calendar"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-            >
-              <Calendar size={20} />
-            </button> */}
-
-            <button
-              type="button"
-              aria-label="Add event"
-              onClick={() => setEventModalOpen(true)}
-              className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--primary) 70%, var(--border))] bg-[var(--primary)] text-[var(--background)] shadow-md shadow-[color-mix(in oklab, var(--primary) 35%, transparent)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-            >
-              <Plus size={24} />
-            </button>
-
-            <button
-              type="button"
-              aria-label="Open music"
-              onClick={() => {
-                const audio = audioRef.current;
-                if (!audio) return;
-                audio.currentTime = 0;
-                void audio.play();
-              }}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-            >
-              <Music size={20} />
-            </button>
-          </div>
-        </div>
       </div>
 
       <ModalShell
@@ -513,65 +500,72 @@ export default function MainPage() {
         description=""
         onClose={() => setEditingEvent(null)}
       >
-        {editingEvent && (
-          <EventCard
-            mode="edit"
-            initial={editingEvent}
-            saving={updateEvent.isPending}
-            onSave={async (values, id) => {
-              if (!userId || !id) return;
-              if (!verified || !token) {
-                SystemToast.showToast(
-                  "Verification required before saving.",
-                  "warning",
+        {editingEvent && (() => {
+          const canEdit =
+            Boolean(userId) &&
+            (editingEvent.user_id === userId ||
+              Boolean(profileQuery.data?.is_admin));
+          return (
+            <EventCard
+              mode="edit"
+              readOnly={!canEdit}
+              initial={editingEvent}
+              saving={updateEvent.isPending}
+              onSave={async (values, id) => {
+                if (!userId || !id) return;
+                if (!verified || !token) {
+                  SystemToast.showToast(
+                    "Verification required before saving.",
+                    "warning",
+                  );
+                  return;
+                }
+                if (!values.title || !values.startAt) {
+                  SystemToast.showToast(
+                    "Title and start time are required.",
+                    "warning",
+                  );
+                  return;
+                }
+                const startDate = new Date(values.startAt);
+                if (Number.isNaN(startDate.getTime())) {
+                  SystemToast.showToast("Start time is invalid.", "warning");
+                  return;
+                }
+                const startIso = startDate.toISOString();
+                const recurrenceRule = toWeeklyRule(
+                  values.startAt,
+                  values.isWeekly,
                 );
-                return;
-              }
-              if (!values.title || !values.startAt) {
-                SystemToast.showToast(
-                  "Title and start time are required.",
-                  "warning",
-                );
-                return;
-              }
-              const startDate = new Date(values.startAt);
-              if (Number.isNaN(startDate.getTime())) {
-                SystemToast.showToast("Start time is invalid.", "warning");
-                return;
-              }
-              const startIso = startDate.toISOString();
-              const recurrenceRule = toWeeklyRule(
-                values.startAt,
-                values.isWeekly,
-              );
-              SystemLoading.loadingStart({ loadingText: "Updating event..." });
-              try {
-                await updateEvent.mutateAsync({
-                  id,
-                  user_id: userId,
-                  title: values.title,
-                  category: values.category || undefined,
-                  description: values.description || undefined,
-                  start_at: startIso,
-                  send_realtime: values.sendRealtime,
-                  recurrence_rule: recurrenceRule,
-                  turnstile_token: token,
-                });
-                setEditingEvent(null);
-                SystemToast.showToast("Event updated.", "success");
-              } catch (error) {
-                SystemToast.showToast(
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to update event.",
-                  "error",
-                );
-              } finally {
-                SystemLoading.loadingEnd();
-              }
-            }}
-          />
-        )}
+                SystemLoading.loadingStart({ loadingText: "Updating event..." });
+                try {
+                  await updateEvent.mutateAsync({
+                    id,
+                    user_id: userId,
+                    title: values.title,
+                    category: values.category || undefined,
+                    description: values.description || undefined,
+                    start_at: startIso,
+                    send_realtime: values.sendRealtime,
+                    recurrence_rule: recurrenceRule,
+                    turnstile_token: token,
+                  });
+                  setEditingEvent(null);
+                  SystemToast.showToast("Event updated.", "success");
+                } catch (error) {
+                  SystemToast.showToast(
+                    error instanceof Error
+                      ? error.message
+                      : "Failed to update event.",
+                    "error",
+                  );
+                } finally {
+                  SystemLoading.loadingEnd();
+                }
+              }}
+            />
+          );
+        })()}
       </ModalShell>
 
       <NotificationGuideModal

@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import TurnstileWidget from "@/components/TurnstileWidget";
-import { useTurnstile } from "@/hooks/useTurnstile";
+import { useTurnstileContext } from "@/components/turnstileContext";
 import { useUpdateUserName } from "@/hooks/useUpdateUserName";
 import { useUpdateUserPreferences } from "@/hooks/useUpdateUserPreferences";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -26,8 +25,7 @@ export default function EditPage() {
   const profileQuery = useUserProfile(userId);
   const updatePreferences = useUpdateUserPreferences();
   const updateName = useUpdateUserName();
-  const { token, verified, handleVerify, handleError, handleExpire } =
-    useTurnstile();
+  const { token, verified } = useTurnstileContext();
   const { SystemToast, SystemLoading } = useGlobalContext();
   const prevFetching = useRef<boolean | null>(null);
 
@@ -185,7 +183,7 @@ export default function EditPage() {
             </div>
 
             <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3 text-xs text-[var(--text-muted)]">
-              Quiet hours: 22:00-08:00 (Asia/Taipei). Digest sends at 12:00
+              Quiet hours: 22:00-08:00 (Asia/Taipei). Digest sends at 10:30
               daily.
             </div>
 
@@ -226,12 +224,6 @@ export default function EditPage() {
             </button>
           </div>
 
-          <TurnstileWidget
-            className="pt-1"
-            onVerify={handleVerify}
-            onError={handleError}
-            onExpire={handleExpire}
-          />
         </section>
 
       </div>

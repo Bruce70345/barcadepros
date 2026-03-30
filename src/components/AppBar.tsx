@@ -6,18 +6,18 @@ import NotificationBellLazy from "@/components/NotificationBellLazy";
 export default function AppBar() {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur">
-      <div className="mx-auto flex h-12 w-full max-w-md items-center justify-between px-5">
+      <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-5">
         <Link
           href="/"
           aria-label="Go to home"
           className="inline-flex items-center gap-3"
         >
-          <span className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-[var(--surface-2)]">
+          <span className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-[var(--surface-2)]">
             <Image
               src="/icons/PWALogo.png"
               alt="Barcade Pros logo"
-              width={36}
-              height={36}
+              width={40}
+              height={40}
               className="object-cover"
               priority
             />
@@ -32,7 +32,7 @@ export default function AppBar() {
           <Link
             href="/edit"
             aria-label="Go to settings"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)]"
           >
             <User size={18} />
           </Link>

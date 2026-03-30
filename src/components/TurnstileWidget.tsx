@@ -40,7 +40,7 @@ export default function TurnstileWidget({
   onError,
   onExpire,
   className,
-  size = "normal",
+  size = "invisible",
   theme = "auto",
   appearance = "always",
 }: TurnstileWidgetProps) {
