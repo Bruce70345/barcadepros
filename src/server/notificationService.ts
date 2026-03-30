@@ -73,7 +73,7 @@ export async function sendRealtimeForEvent(eventId: string) {
         tokens: batch,
         notification: {
           title: invitationBody,
-          body: invitationBody,
+          body: event.title,
         },
         data: {
           event_id: event.id,

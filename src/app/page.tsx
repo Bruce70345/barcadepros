@@ -15,6 +15,7 @@ import ModalShell from "@/components/ModalShell";
 import { useIsHydrated } from "@/hooks/useIsHydrated";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import NotificationGuideModal from "@/components/NotificationGuideModal";
+import CalendarView from "@/components/CalendarView";
 import {
   OPEN_EVENT_MODAL_EVENT,
   SHOW_CALENDAR_VIEW_EVENT,
@@ -402,9 +403,10 @@ export default function MainPage() {
           </>
         )}
         {activeTab === "calendar" && (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-sm text-[var(--text-muted)]">
-            Calendar view coming soon.
-          </div>
+          <CalendarView
+            events={eventsQuery.data ?? []}
+            onSelectEvent={(event) => setEditingEvent(event)}
+          />
         )}
 
         {/* Tabs (SPA)
