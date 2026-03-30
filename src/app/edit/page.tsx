@@ -118,7 +118,7 @@ export default function EditPage() {
 
   return (
     <main className="flex-1 bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto w-full max-w-md px-5 py-8">
+      <div className="mx-auto w-full max-w-md px-5 py-8 pb-28">
         <header>
           <h1 className="text-2xl font-semibold">Settings</h1>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">

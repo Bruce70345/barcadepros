@@ -202,7 +202,7 @@ export default function MainPage() {
 
   return (
     <main className="flex-1 bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto w-full max-w-md px-5 py-8">
+      <div className="mx-auto w-full max-w-md px-5 py-8 pb-28">
 
         {hydrated && eventsQuery.error && (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--danger)]">
