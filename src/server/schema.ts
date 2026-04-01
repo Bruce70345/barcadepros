@@ -30,6 +30,14 @@ export const SHEET_HEADERS = {
     "recurrence_rule",
     "created_at",
   ],
+  event_attendees: [
+    "id",
+    "event_id",
+    "user_id",
+    "is_active",
+    "created_at",
+    "updated_at",
+  ],
   notifications: [
     "id",
     "type",

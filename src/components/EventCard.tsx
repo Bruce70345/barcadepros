@@ -1,10 +1,12 @@
 "use client";
 
 import { CalendarDays, CalendarPlus, Repeat2, Share2, Text, ToggleLeft } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { useEventAttendees } from "@/hooks/useEventAttendees";
+import { useUpdateAttendance } from "@/hooks/useUpdateAttendance";
 
 export type EventCardValues = {
   title: string;
@@ -58,6 +60,7 @@ type EventCardProps = {
   readOnly?: boolean;
   initial?: {
     id?: string;
+    user_id?: string;
     title?: string;
     category?: string;
     location?: string;
@@ -69,6 +72,7 @@ type EventCardProps = {
   };
   onSave: (values: EventCardValues, id?: string) => void | Promise<void>;
   saving?: boolean;
+  currentUserId?: string | null;
 };
 
 export default function EventCard({
@@ -77,6 +81,7 @@ export default function EventCard({
   initial,
   onSave,
   saving,
+  currentUserId,
 }: EventCardProps) {
   const defaultDate =
     mode === "create" && !initial?.start_at ? getRoundedDefaultDate() : undefined;
@@ -123,6 +128,10 @@ export default function EventCard({
     Boolean(initial?.send_realtime) && mode === "create"
   );
   const [isWeekly, setIsWeekly] = useState(Boolean(initial?.recurrence_rule));
+  const attendeesQuery = useEventAttendees(
+    mode === "edit" ? initial?.id : undefined
+  );
+  const updateAttendance = useUpdateAttendance();
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     const url = new URL(window.location.href);
@@ -131,6 +140,12 @@ export default function EventCard({
     }
     return url.toString();
   }, [initial]);
+
+  const attendees = attendeesQuery.data?.attendees ?? [];
+  const isCreator = Boolean(currentUserId && initial?.user_id === currentUserId);
+  const isAttending = currentUserId
+    ? attendees.some((attendee) => attendee.user_id === currentUserId)
+    : false;
 
   const displayDate = useMemo(() => {
     if (!selectedDate) return "dd/mm/yyyy";
@@ -234,7 +249,7 @@ export default function EventCard({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
+      className="flex max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
     >
       <header className="flex items-center justify-between gap-3">
         <div>
@@ -248,6 +263,7 @@ export default function EventCard({
           )}
         </div>
       </header>
+      <div className="panel-with-scrollbar mt-3 flex-1 overflow-y-auto pr-1">
       {mode === "edit" && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium text-[var(--text-muted)]">
@@ -277,6 +293,63 @@ export default function EventCard({
             <CalendarPlus size={14} className="text-[var(--text-muted)]" />
             Add to Google Calendar
           </a>
+        </div>
+      )}
+
+      {mode === "edit" && (
+        <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs font-medium text-[var(--text-primary)]">
+              Going
+              <span className="ml-2 text-[11px] text-[var(--text-muted)]">
+                {attendeesQuery.isLoading
+                  ? "…"
+                  : attendees.length === 0
+                    ? "0 attending"
+                    : `${attendees.length} attending`}
+              </span>
+            </div>
+            <button
+              type="button"
+              disabled={
+                !currentUserId ||
+                isCreator ||
+                updateAttendance.isPending
+              }
+              onClick={async () => {
+                if (!currentUserId || !initial?.id) return;
+                if (isCreator) return;
+                await updateAttendance.mutateAsync({
+                  event_id: initial.id,
+                  user_id: currentUserId,
+                  join: !isAttending,
+                });
+              }}
+              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-primary)] disabled:opacity-60"
+            >
+              {isCreator
+                ? "Creator"
+                : updateAttendance.isPending
+                  ? isAttending
+                    ? "Leaving..."
+                    : "Joining..."
+                  : isAttending
+                    ? "Leave"
+                    : "Join"}
+            </button>
+          </div>
+          {!attendeesQuery.isLoading && attendees.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {attendees.map((attendee) => (
+                <span
+                  key={`${attendee.user_id}-${attendee.name}`}
+                  className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)]"
+                >
+                  {attendee.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -507,6 +580,7 @@ export default function EventCard({
         )}
       </div>
 
+      </div>
       {!readOnly && (
         <button
           type="submit"

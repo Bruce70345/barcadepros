@@ -43,7 +43,7 @@ export const LoadingDrop: FC<{ isLoading: boolean; loadingText: string }> = ({
   if (!isLoading) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[9999]">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[11000]">
       <div className="flex flex-col items-center space-y-4 bg-card p-8 rounded-xl shadow-lg border border-border">
         <Spinner size="lg" className="text-pamex" />
         <div className="text-lg font-medium text-foreground">{loadingText}</div>
@@ -129,7 +129,7 @@ export const AlertToast: FC<{
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999]">
+    <div className="fixed bottom-4 right-4 z-[10500]">
       <div
         className="rounded-lg border-l-4 p-4 shadow-lg"
         style={severityStyles[severity]}
@@ -296,10 +296,6 @@ export const ConfirmDialog: FC<{
   const isClient = useIsClient();
   const [checkboxValue, setCheckboxValue] = useState(Boolean(checkboxDefault));
 
-  useEffect(() => {
-    setCheckboxValue(Boolean(checkboxDefault));
-  }, [checkboxDefault, isOpen]);
-
   // console.log("🎭 [ConfirmDialog] Render - isOpen:", isOpen, "count:", count);
 
   if (!isOpen || !isClient) {
@@ -328,7 +324,7 @@ export const ConfirmDialog: FC<{
 
   return (
     <div
-      className="pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center bg-black/60"
+      className="pointer-events-auto fixed inset-0 z-[10100] flex items-center justify-center bg-black/60"
       onClick={(e) => {
         e.stopPropagation();
       }}
@@ -466,6 +462,7 @@ export const GlobalProvider: FC<GlobalProviderProps> = ({ children }) => {
     >
       <AlertToast {...SystemToast.toastField} onClose={SystemToast.hideToast} />
       <ConfirmDialog
+        key={SystemConfirm.confirmField.count}
         {...SystemConfirm.confirmField}
         count={SystemConfirm.confirmField.count}
       />

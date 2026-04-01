@@ -10,6 +10,7 @@ import { assertHeaders } from "@/server/schema";
 const SHEET_USERS = "users";
 const SHEET_DEVICES = "user_devices";
 const SHEET_EVENTS = "events";
+const SHEET_EVENT_ATTENDEES = "event_attendees";
 const SHEET_NOTIFICATIONS = "notifications";
 const RECURRENCE_END_DATE = new Date(Date.UTC(2026, 5, 30, 23, 59, 59, 999));
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -48,6 +49,15 @@ type EventRecord = {
   send_realtime: boolean;
   recurrence_rule?: string;
   created_at: string;
+};
+
+type EventAttendeeRecord = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 type NotificationRecord = {
@@ -159,6 +169,16 @@ async function loadEvents() {
   const mapped = mapRows<EventRecord>(headers, rows).map((e) => ({
     ...e,
     send_realtime: toBool((e as any).send_realtime),
+  }));
+  return { headers, rows, mapped };
+}
+
+async function loadEventAttendees() {
+  const { headers, rows } = await getSheetValues(SHEET_EVENT_ATTENDEES);
+  assertHeaders("event_attendees", headers);
+  const mapped = mapRows<EventAttendeeRecord>(headers, rows).map((a) => ({
+    ...a,
+    is_active: toBool((a as any).is_active),
   }));
   return { headers, rows, mapped };
 }
@@ -474,6 +494,9 @@ export async function createEvent(input: {
       send_realtime: fromBool(baseRecord.send_realtime),
     } as any);
     await appendRow(SHEET_EVENTS, row);
+    await upsertEventAttendees([
+      { event_id: baseRecord.id, user_id: baseRecord.user_id, is_active: true },
+    ]);
     return { primary: baseRecord, count: 1 };
   }
 
@@ -489,6 +512,9 @@ export async function createEvent(input: {
       send_realtime: fromBool(baseRecord.send_realtime),
     } as any);
     await appendRow(SHEET_EVENTS, row);
+    await upsertEventAttendees([
+      { event_id: recurringBase.id, user_id: recurringBase.user_id, is_active: true },
+    ]);
     return { primary: recurringBase, count: 1 };
   }
 
@@ -510,6 +536,9 @@ export async function createEvent(input: {
       send_realtime: fromBool(baseRecord.send_realtime),
     } as any);
     await appendRow(SHEET_EVENTS, row);
+    await upsertEventAttendees([
+      { event_id: recurringBase.id, user_id: recurringBase.user_id, is_active: true },
+    ]);
     return { primary: recurringBase, count: 1 };
   }
 
@@ -520,6 +549,14 @@ export async function createEvent(input: {
     } as any);
     await appendRow(SHEET_EVENTS, row);
   }
+
+  await upsertEventAttendees(
+    events.map((event) => ({
+      event_id: event.id,
+      user_id: event.user_id,
+      is_active: true,
+    }))
+  );
 
   return { primary: events[0] ?? recurringBase, count: events.length || 1 };
 }
@@ -682,6 +719,82 @@ export async function listEventsInRange(input: {
     const t = Date.parse(e.start_at);
     return t >= fromMs && t <= toMs;
   });
+}
+
+export async function upsertEventAttendees(
+  input: { event_id: string; user_id: string; is_active: boolean }[]
+) {
+  if (input.length === 0) return;
+  const { headers, mapped } = await loadEventAttendees();
+  const updates: { rowNumber: number; values: string[] }[] = [];
+  const appends: string[][] = [];
+  const now = nowIso();
+
+  for (const entry of input) {
+    const existing = mapped.find(
+      (row) => row.event_id === entry.event_id && row.user_id === entry.user_id
+    );
+    if (existing) {
+      const rowNumber = mapped.indexOf(existing) + 2;
+      const updated: EventAttendeeRecord = {
+        ...existing,
+        is_active: entry.is_active,
+        updated_at: now,
+      };
+      const row = buildRow(headers, {
+        ...updated,
+        is_active: fromBool(updated.is_active),
+      } as any);
+      updates.push({ rowNumber, values: row });
+    } else {
+      const record: EventAttendeeRecord = {
+        id: crypto.randomUUID(),
+        event_id: entry.event_id,
+        user_id: entry.user_id,
+        is_active: entry.is_active,
+        created_at: now,
+        updated_at: now,
+      };
+      const row = buildRow(headers, {
+        ...record,
+        is_active: fromBool(record.is_active),
+      } as any);
+      appends.push(row);
+    }
+  }
+
+  if (updates.length > 0) {
+    await batchUpdateRows(SHEET_EVENT_ATTENDEES, updates);
+  }
+  for (const row of appends) {
+    await appendRow(SHEET_EVENT_ATTENDEES, row);
+  }
+}
+
+export async function listEventAttendees(eventId: string): Promise<
+  {
+    user_id: string;
+    name: string;
+  }[]
+> {
+  if (!eventId) return [];
+  const event = await getEventById(eventId);
+  if (event?.user_id) {
+    await upsertEventAttendees([
+      { event_id: eventId, user_id: event.user_id, is_active: true },
+    ]);
+  }
+  const [{ mapped: attendees }, { mapped: users }] = await Promise.all([
+    loadEventAttendees(),
+    loadUsers(),
+  ]);
+  const userMap = new Map(users.map((u) => [u.id, u.name]));
+  return attendees
+    .filter((row) => row.event_id === eventId && row.is_active)
+    .map((row) => ({
+      user_id: row.user_id,
+      name: userMap.get(row.user_id) || "Unknown",
+    }));
 }
 
 export async function createNotification(input: {

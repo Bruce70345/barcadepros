@@ -552,6 +552,7 @@ export default function MainPage() {
         <EventCard
           key="create"
           mode="create"
+          currentUserId={userId}
           saving={createEvent.isPending}
           onSave={async (values: EventCardValues) => {
             if (!userId) return;
@@ -630,6 +631,7 @@ export default function MainPage() {
               mode="edit"
               readOnly={!canEdit}
               initial={editingEvent}
+              currentUserId={userId}
               saving={updateEvent.isPending}
               onSave={async (values, id) => {
                 if (!userId || !id) return;
