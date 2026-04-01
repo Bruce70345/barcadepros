@@ -7,6 +7,8 @@ import {
 } from "@/server/appStore";
 import { getAdminMessaging } from "@/server/firebaseAdmin";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 function isQuietHoursTaipei(now: Date) {
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Taipei",
@@ -78,6 +80,7 @@ export async function sendRealtimeForEvent(eventId: string) {
         data: {
           event_id: event.id,
           type: "realtime",
+          click_action: `${siteUrl}/?event=${event.id}`,
         },
       });
       successCount += result.successCount;

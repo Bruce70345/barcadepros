@@ -54,7 +54,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col custom-scrollbar">
+      <body className="min-h-full flex flex-col">
         <Providers>
           <AppBar />
           {children}

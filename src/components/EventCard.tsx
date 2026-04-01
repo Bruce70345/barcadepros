@@ -125,8 +125,12 @@ export default function EventCard({
   const [isWeekly, setIsWeekly] = useState(Boolean(initial?.recurrence_rule));
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return window.location.href;
-  }, []);
+    const url = new URL(window.location.href);
+    if (initial?.id) {
+      url.searchParams.set("event", initial.id);
+    }
+    return url.toString();
+  }, [initial]);
 
   const displayDate = useMemo(() => {
     if (!selectedDate) return "dd/mm/yyyy";

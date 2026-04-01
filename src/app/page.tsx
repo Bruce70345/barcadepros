@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useInitFcm } from "@/hooks/useInitFcm";
 import { ChevronDown } from "lucide-react";
 import EventCard, { EventCardValues } from "@/components/EventCard";
@@ -26,6 +26,10 @@ import {
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function MainPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const eventParam = searchParams?.get("event")?.trim() || null;
+  const urlEventHandledRef = useRef<boolean>(false);
+  const suppressUrlOpenRef = useRef<string | null>(null);
   const [userId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem("userId");
@@ -76,9 +80,12 @@ export default function MainPage() {
 
   useEffect(() => {
     if (!userId) {
-      router.replace("/join");
+      const target = eventParam
+        ? `/join?event=${encodeURIComponent(eventParam)}`
+        : "/join";
+      router.replace(target);
     }
-  }, [router, userId]);
+  }, [router, userId, eventParam]);
 
   useEffect(() => {
     if (!userId) return;
@@ -98,6 +105,60 @@ export default function MainPage() {
       router.replace("/join");
     }
   }, [profileQuery.isError, profileQuery.error, router, userId]);
+
+  useEffect(() => {
+    if (!eventParam) {
+      console.log("[event-link] no event param, reset handled");
+      urlEventHandledRef.current = false;
+      suppressUrlOpenRef.current = null;
+      return;
+    }
+    if (suppressUrlOpenRef.current === eventParam) {
+      console.log("[event-link] suppress open for url event", { eventParam });
+      return;
+    }
+    if (!calendarEventsQuery.isFetched) return;
+    if (editingEvent?.id === eventParam) {
+      console.log("[event-link] event already open", { eventParam });
+      urlEventHandledRef.current = true;
+      return;
+    }
+    const match = calendarEventsQuery.data?.find((event) => event.id === eventParam);
+    if (match) {
+      console.log("[event-link] open event from url", { eventParam });
+      setEditingEvent(match);
+      urlEventHandledRef.current = true;
+      return;
+    }
+    console.log("[event-link] event not found for url", { eventParam });
+    urlEventHandledRef.current = true;
+  }, [eventParam, calendarEventsQuery.data, calendarEventsQuery.isFetched, editingEvent?.id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const current = searchParams?.get("event") ?? null;
+    const next = editingEvent?.id ?? null;
+
+    if (!next && current && !urlEventHandledRef.current) {
+      console.log("[event-link] skip clearing param (not handled yet)", {
+        current,
+      });
+      return;
+    }
+
+    if (current === next) return;
+
+    const url = new URL(window.location.href);
+    if (next) {
+      console.log("[event-link] set param", { next });
+      url.searchParams.set("event", next);
+    } else {
+      console.log("[event-link] clear param", { current });
+      url.searchParams.delete("event");
+    }
+    const query = url.searchParams.toString();
+    router.replace(`${url.pathname}${query ? `?${query}` : ""}`);
+  }, [editingEvent?.id, router, searchParams]);
 
   useEffect(() => {
     const handler = () => setEventModalOpen(true);
@@ -229,7 +290,7 @@ export default function MainPage() {
 
   return (
     <main className="flex-1 bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto w-full max-w-md px-5 py-8 pb-28">
+      <div className="mx-auto w-full max-w-md px-5 py-8">
 
         {hydrated && eventsQuery.error && (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--danger)]">
@@ -327,7 +388,7 @@ export default function MainPage() {
               </div>
             </details>
 
-            <div className="panel-with-scrollbar mt-6 max-h-[60vh] space-y-3 overflow-y-visible">
+            <div className="panel-with-scrollbar mt-6 max-h-[60vh] space-y-3 overflow-y-auto pb-16">
               {hydrated && eventsQuery.data?.length === 0 && (
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-muted)]">
                   No events match these filters.
@@ -549,7 +610,14 @@ export default function MainPage() {
         open={Boolean(editingEvent)}
         title=""
         description=""
-        onClose={() => setEditingEvent(null)}
+        onClose={() => {
+          console.log("[event-link] modal close");
+          if (eventParam) {
+            suppressUrlOpenRef.current = eventParam;
+            urlEventHandledRef.current = true;
+          }
+          setEditingEvent(null);
+        }}
       >
         {editingEvent && (() => {
           const canEdit =

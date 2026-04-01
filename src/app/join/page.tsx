@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useJoinUser } from "@/hooks/useJoinUser";
 import { useTurnstileContext } from "@/components/turnstileContext";
 import { useGlobalContext } from "@/components/globalContext";
@@ -16,6 +16,8 @@ import { ApiError } from "@/api/apiClient";
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function JoinPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const eventParam = searchParams?.get("event")?.trim() || "";
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -35,27 +37,28 @@ export default function JoinPage() {
     requestPermission: () => Promise<boolean>;
   };
 
-  useEffect(() => {
-    if (!userId) return;
-    if (profileQuery.data && !profileQuery.isError) {
-      router.replace("/");
-      return;
-    }
-    if (!profileQuery.isError) return;
-    const error = profileQuery.error;
-    const status =
-      error instanceof ApiError
-        ? error.status
-        : typeof (error as any)?.status === "number"
-          ? (error as any).status
-          : null;
-    if (status === 404) {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("userId");
-        window.localStorage.removeItem("userName");
-      }
-    }
-  }, [profileQuery.data, profileQuery.error, profileQuery.isError, router, userId]);
+  // useEffect(() => {
+  //   if (!userId) return;
+  //   if (profileQuery.data && !profileQuery.isError) {
+  //     const target = eventParam ? `/?event=${encodeURIComponent(eventParam)}` : "/";
+  //     router.replace(target);
+  //     return;
+  //   }
+  //   if (!profileQuery.isError) return;
+  //   const error = profileQuery.error;
+  //   const status =
+  //     error instanceof ApiError
+  //       ? error.status
+  //       : typeof (error as any)?.status === "number"
+  //         ? (error as any).status
+  //         : null;
+  //   if (status === 404) {
+  //     if (typeof window !== "undefined") {
+  //       window.localStorage.removeItem("userId");
+  //       window.localStorage.removeItem("userName");
+  //     }
+  //   }
+  // }, [profileQuery.data, profileQuery.error, profileQuery.isError, router, userId]);
 
   useEffect(() => {
     if (error) {
@@ -91,7 +94,8 @@ export default function JoinPage() {
       });
       window.localStorage.setItem("userId", record.id);
       window.localStorage.setItem("userName", record.name);
-      router.replace("/");
+      const target = eventParam ? `/?event=${encodeURIComponent(eventParam)}` : "/";
+      router.replace(target);
     } catch (err) {
       console.error("Join failed:", err);
       SystemToast.showToast(
@@ -128,8 +132,8 @@ export default function JoinPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto w-full max-w-md px-5 py-10">
+    <main className="flex-1 bg-[var(--background)] text-[var(--foreground)]">
+      <div className="mx-auto w-full max-w-md px-5 py-4">
         <h1 className="text-2xl font-semibold">Join Barcade Pros</h1>
         <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)]">
           <Image

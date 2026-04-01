@@ -176,6 +176,11 @@ function openWindowOrTab(url) {
             return client.focus();
           }
         }
+        const target = clientList[0];
+        if (target && "navigate" in target) {
+          console.log("[Firebase SW] 導向現有窗口");
+          return target.navigate(url).then(() => target.focus());
+        }
         console.log("[Firebase SW] 沒有匹配的窗口，創建新窗口");
         return clients.openWindow(url);
       }
