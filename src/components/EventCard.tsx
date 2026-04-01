@@ -117,6 +117,7 @@ export default function EventCard({
   const [timeHour, setTimeHour] = useState(initialTime.hour);
   const [timeMinute, setTimeMinute] = useState(initialTime.minute);
   const [timeMeridiem, setTimeMeridiem] = useState(initialTime.meridiem);
+  const [isDateOpen, setIsDateOpen] = useState(false);
   const [updateRest, setUpdateRest] = useState(false);
   const [sendRealtime, setSendRealtime] = useState(
     Boolean(initial?.send_realtime) && mode === "create"
@@ -325,7 +326,12 @@ export default function EventCard({
         <label className="block text-sm">
           Start time
           <div className="mt-2 grid gap-2">
-            <Popover>
+            <Popover
+              open={isDateOpen}
+              onOpenChange={(nextOpen) => {
+                setIsDateOpen(nextOpen);
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   type="button"
@@ -339,7 +345,10 @@ export default function EventCard({
                   </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="bg-[var(--surface)] p-3">
+              <PopoverContent
+                align="start"
+                className="z-[10001] bg-[var(--surface)] p-3"
+              >
                 <div className="space-y-3">
                 <Calendar
                   mode="single"

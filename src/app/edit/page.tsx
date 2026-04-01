@@ -7,6 +7,7 @@ import { useUpdateUserName } from "@/hooks/useUpdateUserName";
 import { useUpdateUserPreferences } from "@/hooks/useUpdateUserPreferences";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useGlobalContext } from "@/components/globalContext";
+import { ApiError } from "@/api/apiClient";
 
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function EditPage() {
@@ -34,6 +35,25 @@ export default function EditPage() {
       router.replace("/join");
     }
   }, [router, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (!profileQuery.isError) return;
+    const error = profileQuery.error;
+    const status =
+      error instanceof ApiError
+        ? error.status
+        : typeof (error as any)?.status === "number"
+          ? (error as any).status
+          : null;
+    if (status === 404) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("userId");
+        window.localStorage.removeItem("userName");
+      }
+      router.replace("/join");
+    }
+  }, [profileQuery.isError, profileQuery.error, router, userId]);
 
   useEffect(() => {
     if (prevFetching.current === profileQuery.isFetching) return;

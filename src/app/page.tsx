@@ -16,6 +16,7 @@ import { useIsHydrated } from "@/hooks/useIsHydrated";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import NotificationGuideModal from "@/components/NotificationGuideModal";
 import CalendarView from "@/components/CalendarView";
+import { ApiError } from "@/api/apiClient";
 import {
   OPEN_EVENT_MODAL_EVENT,
   SHOW_CALENDAR_VIEW_EVENT,
@@ -78,6 +79,25 @@ export default function MainPage() {
       router.replace("/join");
     }
   }, [router, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (!profileQuery.isError) return;
+    const error = profileQuery.error;
+    const status =
+      error instanceof ApiError
+        ? error.status
+        : typeof (error as any)?.status === "number"
+          ? (error as any).status
+          : null;
+    if (status === 404) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("userId");
+        window.localStorage.removeItem("userName");
+      }
+      router.replace("/join");
+    }
+  }, [profileQuery.isError, profileQuery.error, router, userId]);
 
   useEffect(() => {
     const handler = () => setEventModalOpen(true);

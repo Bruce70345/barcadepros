@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useModalContext } from "@/components/modalContext";
 
 type ModalShellProps = {
@@ -43,8 +44,9 @@ export default function ModalShell({
   }, [open, onClose]);
 
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center px-5">
       <button
         type="button"
@@ -67,6 +69,7 @@ export default function ModalShell({
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

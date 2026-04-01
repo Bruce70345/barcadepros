@@ -91,14 +91,16 @@ const NotificationGuideModal = ({
     <ModalShell
       open={open}
       onClose={onClose}
-      title="How to Enable Notifications"
-      description="Follow the steps below based on your browser."
+      title=""
+      description=""
     >
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <div>How to Enable Notifications</div>
+        <div>Follow the steps below based on your browser.</div>
         <div
           role="tablist"
           aria-label="Browser tabs"
-          className="custom-scrollbar flex gap-2 overflow-x-auto pb-2"
+          className="panel-with-scrollbar flex gap-2 overflow-x-auto pt-4 pb-2"
         >
           {tabs.map((tab, index) => {
             const active = index === tabValue;

@@ -7,23 +7,55 @@ import { useJoinUser } from "@/hooks/useJoinUser";
 import { useTurnstileContext } from "@/components/turnstileContext";
 import { useGlobalContext } from "@/components/globalContext";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import NotificationGuideModal from "@/components/NotificationGuideModal";
+import ModalShell from "@/components/ModalShell";
+import { useFirebase } from "@/hooks/useFirebase";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { ApiError } from "@/api/apiClient";
 
 // MVVM: this page is the View. Data and mutations should live in hooks (ViewModel).
 export default function JoinPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   const joinUser = useJoinUser();
+  const [userId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem("userId");
+  });
+  const profileQuery = useUserProfile(userId);
   const { token, verified, error, handleVerify, handleError, handleExpire, setWidgetId } =
     useTurnstileContext();
   const { SystemToast, SystemLoading } = useGlobalContext();
+  const { notificationPermission, requestPermission } = useFirebase() as {
+    notificationPermission: NotificationPermission | "-";
+    requestPermission: () => Promise<boolean>;
+  };
 
   useEffect(() => {
-    const userId = window.localStorage.getItem("userId");
-    if (userId) {
+    if (!userId) return;
+    if (profileQuery.data && !profileQuery.isError) {
       router.replace("/");
+      return;
     }
-  }, [router]);
+    if (!profileQuery.isError) return;
+    const error = profileQuery.error;
+    const status =
+      error instanceof ApiError
+        ? error.status
+        : typeof (error as any)?.status === "number"
+          ? (error as any).status
+          : null;
+    if (status === 404) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("userId");
+        window.localStorage.removeItem("userName");
+      }
+    }
+  }, [profileQuery.data, profileQuery.error, profileQuery.isError, router, userId]);
 
   useEffect(() => {
     if (error) {
@@ -31,9 +63,7 @@ export default function JoinPage() {
     }
   }, [error]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const trimmed = name.trim();
+  const proceedJoin = async (trimmed: string, surnameTrimmed: string) => {
     if (!trimmed) {
       SystemToast.showToast("Please enter a display name.", "warning");
       return;
@@ -42,7 +72,6 @@ export default function JoinPage() {
       SystemToast.showToast("Display name must be under 50 characters.", "warning");
       return;
     }
-    const surnameTrimmed = surname.trim();
     if (!surnameTrimmed) {
       SystemToast.showToast("Please enter a surname.", "warning");
       return;
@@ -72,6 +101,30 @@ export default function JoinPage() {
     } finally {
       SystemLoading.loadingEnd();
     }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmed = name.trim();
+    const surnameTrimmed = surname.trim();
+    if (
+      notificationPermission === "denied" ||
+      notificationPermission === "-" ||
+      notificationPermission === "default"
+    ) {
+      if (notificationPermission === "denied") {
+        setPendingSubmit(true);
+        setShowPermissionModal(true);
+        return;
+      }
+      const granted = await requestPermission();
+      if (!granted) {
+        setPendingSubmit(true);
+        setShowPermissionModal(true);
+        return;
+      }
+    }
+    await proceedJoin(trimmed, surnameTrimmed);
   };
 
   return (
@@ -133,6 +186,48 @@ export default function JoinPage() {
           onWidgetId={setWidgetId}
         />
       </div>
+      <ModalShell
+        open={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        title="Enable Notifications"
+        description="Please enable notifications before joining."
+      >
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Notifications are required to receive event updates. Please allow
+            notifications in your browser or device settings.
+          </p>
+          <div className="mt-4 grid gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowPermissionModal(false);
+                setShowGuide(true);
+              }}
+              className="w-full rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--background)]"
+            >
+              View Guide
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPermissionModal(false);
+                if (pendingSubmit) {
+                  setPendingSubmit(false);
+                  void proceedJoin(name.trim(), surname.trim());
+                }
+              }}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)]"
+            >
+              Not now
+            </button>
+          </div>
+        </div>
+      </ModalShell>
+      <NotificationGuideModal
+        open={showGuide}
+        onClose={() => setShowGuide(false)}
+      />
     </main>
   );
 }
