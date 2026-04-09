@@ -5,8 +5,10 @@ import {
   FC,
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -18,21 +20,24 @@ export const useLoadingDrop = () => {
     loadingText: "Loading...",
   });
 
-  const loadingStart = ({ loadingText = "Loading..." } = {}) => {
+  const loadingStart = useCallback(({ loadingText = "Loading..." } = {}) => {
     setLoadingConfig({
       isLoading: true,
       loadingText,
     });
-  };
+  }, []);
 
-  const loadingEnd = () => {
+  const loadingEnd = useCallback(() => {
     setLoadingConfig({
       isLoading: false,
       loadingText: "Loading...",
     });
-  };
+  }, []);
 
-  return { loadingConfig, loadingStart, loadingEnd };
+  return useMemo(
+    () => ({ loadingConfig, loadingStart, loadingEnd }),
+    [loadingConfig, loadingStart, loadingEnd],
+  );
 };
 
 // 載入組件（使用 shadcn/ui Spinner）

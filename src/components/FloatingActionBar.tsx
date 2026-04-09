@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Calendar, Home, Music, Notebook, Plus } from "lucide-react";
+import { Calendar, Hash, Home, Music, Notebook, Plus } from "lucide-react";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { useTurnstileContext } from "@/components/turnstileContext";
 import {
@@ -33,6 +33,8 @@ export default function FloatingActionBar() {
   if (pathname === "/join") return null;
 
   const isEditPage = pathname === "/edit";
+  const isBingoPage = pathname === "/bingo";
+  const isHomeOnlyPage = isEditPage || isBingoPage;
 
   return (
     <div className="fixed inset-x-0 bottom-6 mx-auto w-full max-w-md px-5">
@@ -55,9 +57,9 @@ export default function FloatingActionBar() {
 
           <button
             type="button"
-            aria-label={isEditPage ? "Go to home" : "Add event"}
+            aria-label={isHomeOnlyPage ? "Go to home" : "Add event"}
             onClick={() => {
-              if (isEditPage) {
+              if (isHomeOnlyPage) {
                 router.push("/");
                 return;
               }
@@ -65,10 +67,18 @@ export default function FloatingActionBar() {
             }}
             className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--primary) 70%, var(--border))] bg-[var(--primary)] text-[var(--background)] shadow-md shadow-[color-mix(in oklab, var(--primary) 35%, transparent)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
           >
-            {isEditPage ? <Home size={24} /> : <Plus size={24} />}
+            {isHomeOnlyPage ? <Home size={24} /> : <Plus size={24} />}
           </button>
-          {!isEditPage && (
+          {!isHomeOnlyPage && (
             <>
+              <button
+                type="button"
+                aria-label={isBingoPage ? "Go to home" : "Go to bingo"}
+                onClick={() => router.push(isBingoPage ? "/" : "/bingo")}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color-mix(in oklab, var(--border) 70%, transparent)] bg-[var(--surface-2)] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in oklab, var(--surface-2) 80%, var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+              >
+                {isBingoPage ? <Home size={20} /> : <Hash size={20} />}
+              </button>
               <button
                 type="button"
                 aria-label="Show calendar view"
