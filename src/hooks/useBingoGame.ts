@@ -1,14 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type BingoCell = {
   prompt: string;
   marked: boolean;
 };
 
+type NotifyOptions = {
+  verified?: boolean;
+  turnstileToken?: string;
+  userName?: string;
+};
+
 const SIZE = 4;
 const STORAGE_CARD_KEY = "barcadepros:bingo:card:v1";
+const STORAGE_DONE_WARNING_KEY = "barcadepros:bingo:done-warning-confirmed:v1";
+const STORAGE_BINGOS_KEY = "barcadepros:bingo:bingos:v1";
+const NOTIFY_DEBOUNCE_MS = 900;
 
 const shuffle = <T,>(items: readonly T[]) => {
   const next = [...items];
@@ -96,7 +105,7 @@ const countBingos = (grid: BingoCell[][]) => {
   return total;
 };
 
-export function useBingoGame(prompts: readonly string[]) {
+export function useBingoGame(prompts: readonly string[], notify?: NotifyOptions) {
   const [card, setCard] = useState<BingoCell[][]>(() => {
     const stored = loadStoredCard(prompts);
     if (stored) return stored;
@@ -110,7 +119,21 @@ export function useBingoGame(prompts: readonly string[]) {
     col: number;
   } | null>(null);
 
+  const [doneWarningConfirmed, setDoneWarningConfirmed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(STORAGE_DONE_WARNING_KEY) === "1";
+  });
+  const [confirmDoneWarningOpen, setConfirmDoneWarningOpen] = useState(false);
+
   const bingos = useMemo(() => countBingos(card), [card]);
+  const prevBingosRef = useRef<number | null>(null);
+  const notifyRef = useRef<NotifyOptions | undefined>(notify);
+  const notifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingNotifyTotalLinesRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    notifyRef.current = notify;
+  }, [notify]);
 
   const pendingPrompt =
     pendingPick ? card[pendingPick.row]?.[pendingPick.col]?.prompt ?? "" : "";
@@ -139,7 +162,7 @@ export function useBingoGame(prompts: readonly string[]) {
 
   const cancelPick = () => setPendingPick(null);
 
-  const confirmDone = () => {
+  const markDone = () => {
     if (!pendingPick) return;
     const { row, col } = pendingPick;
     setCard((prev) => {
@@ -154,16 +177,86 @@ export function useBingoGame(prompts: readonly string[]) {
     setPendingPick(null);
   };
 
+  const requestDone = () => {
+    if (doneWarningConfirmed) {
+      markDone();
+      return;
+    }
+    setConfirmDoneWarningOpen(true);
+  };
+
+  const cancelDoneWarning = () => setConfirmDoneWarningOpen(false);
+
+  const confirmDoneWarning = () => {
+    setConfirmDoneWarningOpen(false);
+    setDoneWarningConfirmed(true);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(STORAGE_DONE_WARNING_KEY, "1");
+      } catch {
+        // ignore storage failures
+      }
+    }
+    markDone();
+  };
+
+  useEffect(() => {
+    if (prevBingosRef.current === null) {
+      prevBingosRef.current = bingos;
+    } else {
+      const prev = prevBingosRef.current;
+      if (bingos > prev) {
+        pendingNotifyTotalLinesRef.current = bingos;
+        if (notifyTimerRef.current) clearTimeout(notifyTimerRef.current);
+        notifyTimerRef.current = setTimeout(() => {
+          const totalLines = pendingNotifyTotalLinesRef.current;
+          pendingNotifyTotalLinesRef.current = null;
+          const latest = notifyRef.current;
+          const turnstileToken = latest?.turnstileToken || "";
+          if (!totalLines) return;
+          if (!latest?.verified || !turnstileToken) return;
+
+          void fetch("/api/bingo/notify-line", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              total_lines: totalLines,
+              user_name: latest?.userName || "",
+              turnstile_token: turnstileToken,
+            }),
+          }).catch(() => {});
+        }, NOTIFY_DEBOUNCE_MS);
+      }
+      prevBingosRef.current = bingos;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(STORAGE_BINGOS_KEY, String(bingos));
+      } catch {
+        // ignore storage failures
+      }
+    }
+  }, [bingos, notify?.turnstileToken, notify?.verified, notify?.userName]);
+
+  useEffect(() => {
+    return () => {
+      if (notifyTimerRef.current) clearTimeout(notifyTimerRef.current);
+    };
+  }, []);
+
   return {
     card,
     bingos,
     pendingPick,
     pendingPrompt,
+    confirmDoneWarningOpen,
     newCard,
     clearMarks,
     openPickModal,
     cancelPick,
-    confirmDone,
+    requestDone,
+    cancelDoneWarning,
+    confirmDoneWarning,
   };
 }
-

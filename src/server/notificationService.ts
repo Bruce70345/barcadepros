@@ -117,3 +117,54 @@ export async function sendRealtimeForEvent(eventId: string) {
     } as const;
   }
 }
+
+export async function sendRealtimeForBingoLine(totalLines: number, userName?: string) {
+  const count = Number(totalLines);
+  if (!Number.isFinite(count) || count <= 0) {
+    return { ok: false, message: "invalid totalLines" } as const;
+  }
+
+  const senderName = userName?.trim() || "Someone";
+  const title = "Bingo!";
+  const body = count === 1 ? `${senderName} now has 1 line.` : `${senderName} now has ${count} lines.`;
+
+  const users = await listActiveUsersByPreference({ realtime: true });
+  const tokens = await listActiveTokensByUserIds(users.map((u) => u.id));
+
+  if (tokens.length === 0) {
+    return { ok: true, sent: 0 } as const;
+  }
+
+  try {
+    const messaging = getAdminMessaging();
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const batch of chunk(tokens, 500)) {
+      const result = await messaging.sendEachForMulticast({
+        tokens: batch,
+        notification: { title, body },
+        data: {
+          type: "bingo",
+          click_action: `${siteUrl}/bingo`,
+        },
+      });
+      successCount += result.successCount;
+      failureCount += result.failureCount;
+    }
+
+    return {
+      ok: true,
+      sent: tokens.length,
+      successCount,
+      failureCount,
+      warning: failureCount > 0 ? "some_tokens_failed" : undefined,
+    } as const;
+  } catch (error: any) {
+    return {
+      ok: false,
+      message: "FCM send failed",
+      detail: error?.message || error,
+    } as const;
+  }
+}
