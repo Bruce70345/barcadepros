@@ -6,6 +6,7 @@ import { useBingoPrompts } from "@/hooks/useBingoPrompts";
 import { useBingoGame } from "@/hooks/useBingoGame";
 import { useGlobalContext } from "@/components/globalContext";
 import { useTurnstileContext } from "@/components/turnstileContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const previewPrompt = (prompt: string, maxChars: number) => {
   const trimmed = prompt.trim();
@@ -26,12 +27,17 @@ function BingoBoard({ prompts }: { prompts: readonly string[] }) {
   const { token, verified } = useTurnstileContext();
   const userName =
     typeof window !== "undefined" ? window.localStorage.getItem("userName") || "" : "";
+  const userId =
+    typeof window !== "undefined" ? window.localStorage.getItem("userId") || "" : "";
+  const profileQuery = useUserProfile(userId || null);
   const game = useBingoGame(prompts, {
     turnstileToken: token,
     verified,
     userName,
   });
   const isDev = process.env.NODE_ENV !== "production";
+  const isAdmin = Boolean(profileQuery.data?.is_admin);
+  const canClear = isDev || isAdmin;
   const hasMarked = game.card.some((row) => row.some((cell) => cell.marked));
 
   return (
@@ -54,7 +60,7 @@ function BingoBoard({ prompts }: { prompts: readonly string[] }) {
           >
             Shuffle
           </button>
-          {isDev && (
+          {canClear && (
             <button
               type="button"
               onClick={game.clearMarks}
